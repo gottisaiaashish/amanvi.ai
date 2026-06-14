@@ -19,10 +19,7 @@ export default function BrightLayout({ children }: { children: ReactNode }) {
       <aside className="w-64 bg-white border-r border-gray-100 flex flex-col hidden md:flex">
         <div className="p-6 pb-2">
           <div className="flex items-center gap-2 font-bold text-lg tracking-tight mb-8">
-            <div className="w-8 h-8 bg-black text-white rounded-lg flex items-center justify-center">
-              <Command className="w-4 h-4" />
-            </div>
-            Amanvi OS
+            Amanvi AI
           </div>
           
           <nav className="space-y-1">
@@ -35,8 +32,8 @@ export default function BrightLayout({ children }: { children: ReactNode }) {
                   className={({ isActive }) =>
                     `flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all font-medium text-sm ${
                       isActive 
-                        ? 'bg-black text-white shadow-md' 
-                        : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'
+                        ? 'bg-gradient-to-r from-[#e8cdcf] to-transparent text-[#91475A] font-medium' 
+                        : 'text-gray-500 hover:bg-[#e8cdcf]/20 hover:text-[#91475A]'
                     }`
                   }
                 >
@@ -48,29 +45,16 @@ export default function BrightLayout({ children }: { children: ReactNode }) {
           </nav>
         </div>
 
-        <div className="mt-auto p-6">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-rose-200 to-rose-100 border-2 border-white shadow-sm flex items-center justify-center text-rose-600 font-bold">
-              A
-            </div>
-            <div>
-              <p className="text-sm font-bold text-gray-900">Ashish Gotti</p>
-              <p className="text-xs font-medium text-gray-400">Pro Plan</p>
-            </div>
-          </div>
-        </div>
+
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 relative overflow-hidden flex flex-col bg-white md:m-3 md:rounded-[2rem] shadow-[0_0_40px_rgba(0,0,0,0.03)] border border-gray-100">
+      <main className="flex-1 relative overflow-hidden flex flex-col bg-white">
         
         {/* Mobile Header */}
         <header className="md:hidden bg-white border-b border-gray-100 p-4 flex items-center justify-between">
           <div className="flex items-center gap-2 font-bold text-lg tracking-tight">
-            <div className="w-8 h-8 bg-black text-white rounded-lg flex items-center justify-center">
-              <Command className="w-4 h-4" />
-            </div>
-            Amanvi OS
+            Amanvi AI
           </div>
           <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-rose-200 to-rose-100 flex items-center justify-center text-rose-600 font-bold">
             A

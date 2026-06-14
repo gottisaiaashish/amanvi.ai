@@ -19,9 +19,6 @@ export default function DailySchedule() {
         <div className="absolute top-0 right-0 p-8 opacity-10">
           <Sparkles className="w-24 h-24" />
         </div>
-        <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center shrink-0">
-          <Sparkles className="w-5 h-5 text-purple-300" />
-        </div>
         <div>
           <h3 className="font-semibold text-lg mb-1">Amanvi's Briefing</h3>
           <p className="text-gray-300 text-sm leading-relaxed max-w-xl font-light">

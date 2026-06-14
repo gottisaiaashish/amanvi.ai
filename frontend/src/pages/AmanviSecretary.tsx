@@ -62,21 +62,21 @@ export default function AmanviSecretary() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-4 md:p-8 h-full flex flex-col pb-32">
+    <div className="w-full max-w-4xl mx-auto p-4 md:p-8 h-full flex flex-col pb-32">
       <div className="flex-1 overflow-y-auto mb-6 space-y-8 pr-2 pt-4">
         {messages.map((msg) => (
           <div key={msg.id}>
             {msg.sender === 'You' ? (
               <div className="flex flex-col gap-2 items-end">
                 <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-2">YOU</span>
-                <div className="bg-white border shadow-sm text-gray-900 rounded-2xl rounded-tr-sm px-6 py-4 max-w-[80%] text-[15px] leading-relaxed">
+                <div className="bg-[#F4F4F5] text-gray-800 rounded-3xl rounded-tr-sm px-6 py-4 max-w-[80%] text-[15px] leading-relaxed">
                   {msg.text}
                 </div>
               </div>
             ) : (
               <div className="flex flex-col gap-2 items-start">
-                <span className="text-[10px] font-bold text-rose-400 uppercase tracking-widest px-2">AMANVI</span>
-                <div className="bg-rose-50 border border-rose-100 text-gray-900 rounded-2xl rounded-tl-sm px-6 py-4 max-w-[85%] shadow-sm text-[15px] leading-relaxed">
+                <span className="text-[11px] font-bold text-[#8E5E67] uppercase tracking-widest px-2">AMANVI</span>
+                <div className="bg-gradient-to-br from-[#faebeb] to-[#fcf3f4] border border-[#f0e1e2] text-gray-900 rounded-3xl rounded-tl-sm px-6 py-4 max-w-[85%] shadow-sm text-[15px] leading-relaxed">
                   {msg.text}
                 </div>
                 {msg.draft && (
@@ -102,12 +102,16 @@ export default function AmanviSecretary() {
         <div ref={messagesEndRef} />
       </div>
 
-      <div className="relative mt-auto">
-        <div className="absolute inset-y-0 left-4 flex items-center">
-          <div className="w-8 h-8 rounded-full bg-rose-100 flex items-center justify-center text-rose-600">
-            <Mic className="w-4 h-4" />
+      <div className="relative mt-auto pb-4">
+        {/* Glow effect behind the input */}
+        <div className="absolute inset-0 bg-gradient-to-r from-rose-100/60 via-pink-50/50 to-orange-50/60 blur-2xl rounded-full scale-105 translate-y-2 pointer-events-none" />
+        
+        <div className="relative z-10">
+          <div className="absolute inset-y-0 left-4 flex items-center">
+            <div className="w-8 h-8 rounded-full bg-rose-100 flex items-center justify-center text-rose-600">
+              <Mic className="w-4 h-4" />
+            </div>
           </div>
-        </div>
         <input
           type="text"
           value={input}
@@ -119,11 +123,12 @@ export default function AmanviSecretary() {
         <div className="absolute inset-y-0 right-2 flex items-center">
           <button 
             onClick={handleSend}
-            className="bg-[#381121] hover:bg-black text-white p-3 px-6 rounded-full font-bold text-xs tracking-wider transition-all shadow-md"
+            className="bg-[#602835] hover:bg-[#4d202a] text-white p-3 px-6 rounded-full font-bold text-xs tracking-wider transition-all shadow-sm"
           >
             SEND
           </button>
         </div>
+      </div>
       </div>
     </div>
   );
