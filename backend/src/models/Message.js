@@ -4,7 +4,7 @@ const MessageSchema = new Schema({
   source: { 
     type: String, 
     required: true, 
-    enum: ['WhatsApp', 'Gmail', 'Instagram', 'Calendar'] 
+    enum: ['WhatsApp', 'Gmail', 'Instagram', 'Calendar', 'System'] 
   },
   sender: { type: String, required: true },
   content: { type: String, required: true },

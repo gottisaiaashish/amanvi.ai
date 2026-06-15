@@ -38,9 +38,13 @@ router.post('/n8n', async (req, res) => {
         const userWithToken = await User.findOne({ fcmToken: { $exists: true, $ne: null } });
         
         if (userWithToken && userWithToken.fcmToken) {
+          const notificationTitle = source === 'System' 
+            ? sender 
+            : `New ${source} message from ${sender}`;
+
           const payload = {
             notification: {
-              title: `New ${source} message from ${sender}`,
+              title: notificationTitle,
               body: content.substring(0, 100) + (content.length > 100 ? '...' : '')
             },
             token: userWithToken.fcmToken
