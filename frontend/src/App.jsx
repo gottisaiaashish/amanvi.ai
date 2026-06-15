@@ -1,13 +1,19 @@
+import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import BrightLayout from './layouts/BrightLayout';
 import UnifiedInbox from './pages/UnifiedInbox';
 import DailySchedule from './pages/DailySchedule';
 import AmanviSecretary from './pages/AmanviSecretary';
+import { setupPushNotifications } from './lib/pushNotifications';
 
 // Placeholder for settings
 const SettingsView = () => <div className="p-12 text-gray-500">Settings Configuration for n8n Webhooks...</div>;
 
 function App() {
+  useEffect(() => {
+    setupPushNotifications();
+  }, []);
+
   return (
     <Router>
       <BrightLayout>

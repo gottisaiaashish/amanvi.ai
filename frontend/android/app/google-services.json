@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "99035882488",
+    "project_id": "amanvi-ai",
+    "storage_bucket": "amanvi-ai.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:99035882488:android:360f48f22d46001f306c0d",
+        "android_client_info": {
+          "package_name": "com.amanvi.ai"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB0OEJCr13qhqLUGERYSJvG-Q6rgMoqFwY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

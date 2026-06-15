@@ -16,10 +16,17 @@ app.use(cors());
 app.use(helmet());
 app.use(morgan('dev'));
 
+import userRoutes from './routes/userRoutes.js';
+import webhookRoutes from './routes/webhookRoutes.js';
+
 // Basic Route
 app.get('/api/health', (req, res) => {
   res.json({ status: 'Amanvi AI Backend is running' });
 });
+
+// Routes
+app.use('/api/users', userRoutes);
+app.use('/api/webhooks', webhookRoutes);
 
 // Database Connection
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/amanvi-ai';

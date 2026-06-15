@@ -26,6 +26,31 @@ router.post('/n8n', async (req, res) => {
     await newMessage.save();
 
     console.log(`[n8n Webhook] Received ${source} message from ${sender}`);
+
+    // Trigger Push Notification
+    try {
+      const admin = (await import('../config/firebase.js')).default;
+      if (admin && admin.apps.length > 0) {
+        // Find any user with a token for now (since it's a single-user app for Ashish)
+        const User = (await import('../models/User.js')).default;
+        const userWithToken = await User.findOne({ fcmToken: { $exists: true, $ne: null } });
+        
+        if (userWithToken && userWithToken.fcmToken) {
+          const payload = {
+            notification: {
+              title: `New ${source} message from ${sender}`,
+              body: content.substring(0, 100) + (content.length > 100 ? '...' : '')
+            },
+            token: userWithToken.fcmToken
+          };
+          
+          await admin.messaging().send(payload);
+          console.log('[Push Notification] Sent successfully to mobile!');
+        }
+      }
+    } catch (pushError) {
+      console.error('[Push Notification Error]:', pushError);
+    }
     res.status(201).json({ success: true, message: 'Message saved successfully', data: newMessage });
   } catch (error) {
     console.error('[n8n Webhook Error]:', error);
