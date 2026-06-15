@@ -3,24 +3,16 @@ import { AmanviBrain } from '../utils/AmanviBrain';
 import { Mic, Send, Command } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-type Message = {
-  id: string;
-  sender: 'You' | 'Amanvi';
-  text: string;
-  draft?: string;
-  action?: string;
-};
-
 export default function AmanviSecretary() {
   const [input, setInput] = useState('');
-  const [messages, setMessages] = useState<Message[]>([
+  const [messages, setMessages] = useState([
     {
       id: '1',
       sender: 'Amanvi',
       text: 'Hi! I am Amanvi, your personal AI. Nenu active ga unnanu. Emi cheyali ivvala?',
     }
   ]);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesEndRef = useRef(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -33,7 +25,7 @@ export default function AmanviSecretary() {
   const handleSend = () => {
     if (!input.trim()) return;
 
-    const userMessage: Message = {
+    const userMessage = {
       id: Date.now().toString(),
       sender: 'You',
       text: input.trim(),
@@ -44,7 +36,7 @@ export default function AmanviSecretary() {
 
     setTimeout(() => {
       const response = AmanviBrain.processInput(userMessage.text);
-      const aiMessage: Message = {
+      const aiMessage = {
         id: (Date.now() + 1).toString(),
         sender: 'Amanvi',
         text: response.text,
@@ -55,7 +47,7 @@ export default function AmanviSecretary() {
     }, 600);
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleKeyDown = (e) => {
     if (e.key === 'Enter') {
       handleSend();
     }

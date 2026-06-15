@@ -1,15 +1,6 @@
-import mongoose, { Schema, Document } from 'mongoose';
+import mongoose, { Schema } from 'mongoose';
 
-export interface IMessage extends Document {
-  source: 'WhatsApp' | 'Gmail' | 'Instagram' | 'Calendar';
-  sender: string;
-  content: string;
-  aiSummary?: string;
-  receivedAt: Date;
-  status: 'Unread' | 'Action_Required' | 'Done';
-}
-
-const MessageSchema: Schema = new Schema({
+const MessageSchema = new Schema({
   source: { 
     type: String, 
     required: true, 
@@ -26,4 +17,4 @@ const MessageSchema: Schema = new Schema({
   }
 });
 
-export default mongoose.model<IMessage>('Message', MessageSchema);
+export default mongoose.model('Message', MessageSchema);

@@ -1,11 +1,11 @@
-import { Router, Request, Response } from 'express';
-import Message from '../models/Message';
+import { Router } from 'express';
+import Message from '../models/Message.js';
 
 const router = Router();
 
 // @route   POST /api/webhooks/n8n
 // @desc    Receive webhooks from n8n automations
-router.post('/n8n', async (req: Request, res: Response): Promise<void> => {
+router.post('/n8n', async (req, res) => {
   try {
     // Expected payload from n8n
     const { source, sender, content } = req.body;
@@ -35,7 +35,7 @@ router.post('/n8n', async (req: Request, res: Response): Promise<void> => {
 
 // @route   GET /api/messages
 // @desc    Get all messages for the frontend Unified Inbox
-router.get('/messages', async (req: Request, res: Response) => {
+router.get('/messages', async (req, res) => {
   try {
     const messages = await Message.find().sort({ receivedAt: -1 });
     res.json(messages);

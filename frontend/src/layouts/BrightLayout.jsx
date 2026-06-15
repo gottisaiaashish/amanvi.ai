@@ -1,20 +1,21 @@
-import type { ReactNode } from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { Inbox, Calendar, MessageSquare, Settings, Command } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { ExpandableTabs } from '../components/expandable-tabs';
 
 const NAV_ITEMS = [
-  { name: 'Inbox', path: '/', icon: Inbox },
-  { name: 'Schedule', path: '/schedule', icon: Calendar },
-  { name: 'Amanvi AI', path: '/amanvi', icon: MessageSquare },
-  { name: 'Settings', path: '/settings', icon: Settings },
+  { title: 'Inbox', path: '/', icon: Inbox },
+  { title: 'Schedule', path: '/schedule', icon: Calendar },
+  { title: 'Amanvi AI', path: '/amanvi', icon: MessageSquare },
+  { title: 'Settings', path: '/settings', icon: Settings },
 ];
 
-export default function BrightLayout({ children }: { children: ReactNode }) {
+export default function BrightLayout({ children }) {
   const location = useLocation();
+  const navigate = useNavigate();
 
   return (
-    <div className="flex h-screen bg-[#fafafa] text-gray-900 font-sans overflow-hidden">
+    <div className="flex h-[100dvh] bg-[#fafafa] text-gray-900 font-sans overflow-hidden">
       {/* Sleek Left Sidebar */}
       <aside className="w-64 bg-white border-r border-gray-100 flex flex-col hidden md:flex">
         <div className="p-6 pb-2">
@@ -38,7 +39,7 @@ export default function BrightLayout({ children }: { children: ReactNode }) {
                   }
                 >
                   <Icon className="w-4 h-4" />
-                  {item.name}
+                  {item.title}
                 </NavLink>
               );
             })}
@@ -77,24 +78,23 @@ export default function BrightLayout({ children }: { children: ReactNode }) {
           </AnimatePresence>
         </div>
 
+        {/* Bottom Fade for Scroll */}
+        <div className="md:hidden absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-white via-white/80 to-transparent z-40 pointer-events-none"></div>
+
         {/* Floating Mobile Nav */}
-        <nav className="md:hidden absolute bottom-6 left-6 right-6 bg-black/90 backdrop-blur-xl text-white rounded-2xl p-2 flex justify-around shadow-2xl">
-          {NAV_ITEMS.map((item) => {
-            const Icon = item.icon;
-            const isActive = location.pathname === item.path;
-            return (
-              <NavLink
-                key={item.path}
-                to={item.path}
-                className={`p-3 rounded-xl transition-all ${
-                  isActive ? 'bg-white/20 text-white' : 'text-gray-400 hover:text-white'
-                }`}
-              >
-                <Icon className="w-5 h-5" />
-              </NavLink>
-            );
-          })}
-        </nav>
+        <div className="md:hidden absolute bottom-6 left-0 right-0 flex justify-center z-50 pointer-events-none px-4">
+          <div className="pointer-events-auto">
+            <ExpandableTabs
+              tabs={NAV_ITEMS}
+              className=""
+              onChange={(index) => {
+                if (index !== null && NAV_ITEMS[index]) {
+                  navigate(NAV_ITEMS[index].path);
+                }
+              }}
+            />
+          </div>
+        </div>
 
       </main>
     </div>

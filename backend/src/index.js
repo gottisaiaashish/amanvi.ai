@@ -1,4 +1,4 @@
-import express, { Express, Request, Response } from 'express';
+import express from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -7,7 +7,7 @@ import mongoose from 'mongoose';
 
 dotenv.config();
 
-const app: Express = express();
+const app = express();
 const port = process.env.PORT || 5000;
 
 // Middleware
@@ -17,7 +17,7 @@ app.use(helmet());
 app.use(morgan('dev'));
 
 // Basic Route
-app.get('/api/health', (req: Request, res: Response) => {
+app.get('/api/health', (req, res) => {
   res.json({ status: 'Amanvi AI Backend is running' });
 });
 
