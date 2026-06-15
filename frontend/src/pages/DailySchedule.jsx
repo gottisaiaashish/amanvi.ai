@@ -1,11 +1,50 @@
 import { useState, useEffect } from 'react';
-import { PhoneCall, CheckCircle2, Sparkles, MoreHorizontal, Video, Loader2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { PhoneCall, CheckCircle2, Sparkles, MoreHorizontal, Video, Loader2, Trash2, CalendarClock, Check } from 'lucide-react';
 
 import { LocalNotifications } from '@capacitor/local-notifications';
 
 export default function DailySchedule() {
-  const [schedule, setSchedule] = useState([]);
+  const navigate = useNavigate();
+  const [allSchedules, setAllSchedules] = useState([]);
+  const [selectedDate, setSelectedDate] = useState(new Date());
   const [isLoading, setIsLoading] = useState(true);
+  const [expandedMenuId, setExpandedMenuId] = useState(null);
+
+  const handleDeleteEvent = async (id) => {
+    setAllSchedules(prev => prev.filter(item => item.id !== id));
+    setExpandedMenuId(null);
+    try {
+      await fetch('https://unzip-trance-backup.ngrok-free.dev/webhook/delete-schedule', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'ngrok-skip-browser-warning': 'true'
+        },
+        body: JSON.stringify({ eventId: id })
+      });
+    } catch (e) {
+      console.error("Failed to delete event", e);
+    }
+  };
+
+  const handleMarkDone = (id) => {
+    setAllSchedules(prev => prev.map(item => {
+      if (item.id === id) {
+        return { ...item, isDone: true };
+      }
+      return item;
+    }));
+    setExpandedMenuId(null);
+  };
+
+  const handleReschedule = (title) => {
+    // Navigate to Chat tab and dispatch event to pre-fill
+    navigate('/amanvi');
+    setTimeout(() => {
+      window.dispatchEvent(new CustomEvent('AMANVI_NAVIGATE_CHAT', { detail: `Amanvi, reschedule ${title} to ` }));
+    }, 300);
+  };
 
   useEffect(() => {
     // Request notification permissions
@@ -61,6 +100,7 @@ export default function DailySchedule() {
 
           formattedSchedule.push({
             id: event.id || Math.random().toString(),
+            fullDate: startTime,
             time: startTime.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
             type: typeStr,
             title: title,
@@ -91,14 +131,10 @@ export default function DailySchedule() {
           }
         }
 
-        // Sort chronologically
-        formattedSchedule.sort((a, b) => {
-           const timeA = new Date(`1970/01/01 ${a.time}`);
-           const timeB = new Date(`1970/01/01 ${b.time}`);
-           return timeA - timeB;
-        });
+        // Sort chronologically across all dates
+        formattedSchedule.sort((a, b) => a.fullDate - b.fullDate);
 
-        setSchedule(formattedSchedule);
+        setAllSchedules(formattedSchedule);
       } catch (error) {
         console.error("Failed to fetch schedule:", error);
       } finally {
@@ -109,14 +145,51 @@ export default function DailySchedule() {
     fetchTasks();
   }, []);
 
+  // Filter schedules for the currently selected date
+  const displayedSchedule = allSchedules.filter(item => {
+    return item.fullDate.toDateString() === selectedDate.toDateString();
+  });
+
+  // Generate an array of 14 days starting from today for the Date Strip
+  const datesStrip = Array.from({ length: 14 }, (_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() + i);
+    return d;
+  });
+
   return (
     <div className="max-w-4xl mx-auto p-8 md:p-12 pb-32">
-      <header className="mb-10">
-        <h1 className="text-3xl font-bold tracking-tight text-gray-900 mb-2">Today's Schedule</h1>
+      <header className="mb-8">
+        <h1 className="text-3xl font-bold tracking-tight text-gray-900 mb-2">My Schedule</h1>
         <p className="text-gray-500">
-          {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+          {selectedDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
         </p>
       </header>
+
+      {/* HORIZONTAL DATE STRIP */}
+      <div className="flex overflow-x-auto hide-scrollbar gap-3 mb-8 pb-4 -mx-8 px-8 md:mx-0 md:px-0">
+        {datesStrip.map((date, i) => {
+          const isSelected = date.toDateString() === selectedDate.toDateString();
+          return (
+            <button 
+              key={i} 
+              onClick={() => setSelectedDate(date)}
+              className={`flex flex-col items-center justify-center min-w-[4.5rem] p-3 rounded-2xl transition-all ${
+                isSelected 
+                  ? 'bg-gray-900 text-white shadow-lg scale-105' 
+                  : 'bg-white text-gray-500 border border-gray-200 hover:bg-gray-50'
+              }`}
+            >
+              <span className={`text-xs font-semibold uppercase mb-1 ${isSelected ? 'text-gray-300' : 'text-gray-400'}`}>
+                {date.toLocaleDateString('en-US', { weekday: 'short' })}
+              </span>
+              <span className={`text-xl font-bold ${isSelected ? 'text-white' : 'text-gray-900'}`}>
+                {date.getDate()}
+              </span>
+            </button>
+          )
+        })}
+      </div>
 
       <div className="bg-gradient-to-r from-gray-900 to-black text-white rounded-3xl p-6 mb-10 shadow-xl flex gap-4 items-start relative overflow-hidden">
         <div className="absolute top-0 right-0 p-8 opacity-10">
@@ -138,14 +211,14 @@ export default function DailySchedule() {
             <Loader2 className="w-8 h-8 animate-spin mb-4 text-rose-300" />
             <p>Amanvi is fetching your schedule...</p>
           </div>
-        ) : schedule.length === 0 ? (
+        ) : displayedSchedule.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-gray-400 relative z-10 bg-white">
             <CheckCircle2 className="w-8 h-8 mb-4 text-gray-300" />
-            <p>Your schedule is clear for today!</p>
+            <p>Your schedule is clear for this day!</p>
           </div>
         ) : (
-          schedule.map((item, i) => (
-          <div key={i} className="flex gap-6 relative z-10 group cursor-pointer">
+          displayedSchedule.map((item, i) => (
+          <div key={i} className={`flex gap-6 relative z-10 group cursor-pointer transition-all ${item.isDone ? 'opacity-50 grayscale' : ''}`}>
             <div className="w-20 pt-4 text-right shrink-0">
               <span className="text-sm font-semibold text-gray-900 block">{item.time.split(' ')[0]}</span>
               <span className="text-[10px] font-bold text-gray-400 block">{item.time.split(' ')[1]}</span>
@@ -155,22 +228,37 @@ export default function DailySchedule() {
               <div className={`w-3 h-3 rounded-full bg-white border-[3px] ${item.text.replace('text', 'border')} group-hover:scale-125 transition-transform`}></div>
             </div>
 
-            <div className={`flex-1 rounded-3xl border p-5 ${item.color} ${item.border} transition-all hover:shadow-md`}>
+            <div className={`flex-1 rounded-3xl border p-5 relative ${item.color} ${item.border} transition-all hover:shadow-md`}>
               <div className="flex justify-between items-start">
-                <div>
+                <div className="pr-12">
                   <span className={`text-[10px] font-bold uppercase tracking-widest mb-2 block ${item.text}`}>{item.type}</span>
-                  <h3 className="text-lg font-bold text-gray-900 mb-1">{item.title}</h3>
+                  <h3 className={`text-lg font-bold text-gray-900 mb-1 ${item.isDone ? 'line-through' : ''}`}>{item.title}</h3>
                   <p className="text-sm text-gray-600 font-medium">{item.duration}</p>
                 </div>
-                {item.participants && (
-                  <div className="flex -space-x-2">
-                    {item.participants.map((p, j) => (
-                      <div key={j} className="w-8 h-8 rounded-full bg-black text-white text-xs font-bold flex items-center justify-center border-2 border-white">
-                        {p}
-                      </div>
-                    ))}
-                  </div>
-                )}
+                
+                <div className="absolute top-4 right-4 z-20">
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); setExpandedMenuId(expandedMenuId === item.id ? null : item.id); }}
+                    className="p-2 rounded-full hover:bg-black/5 text-gray-400 hover:text-gray-900 transition-colors"
+                  >
+                    <MoreHorizontal className="w-5 h-5" />
+                  </button>
+                  
+                  {expandedMenuId === item.id && (
+                    <div className="absolute right-0 mt-1 w-48 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden py-2 animate-in fade-in slide-in-from-top-2 origin-top-right z-30">
+                      <button onClick={(e) => { e.stopPropagation(); handleMarkDone(item.id); }} className="w-full text-left px-4 py-2.5 text-sm font-medium text-emerald-600 hover:bg-emerald-50 flex items-center gap-2">
+                        <Check className="w-4 h-4" /> Mark as Done
+                      </button>
+                      <button onClick={(e) => { e.stopPropagation(); handleReschedule(item.title); }} className="w-full text-left px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-2">
+                        <CalendarClock className="w-4 h-4" /> Reschedule
+                      </button>
+                      <div className="h-px bg-gray-100 my-1"></div>
+                      <button onClick={(e) => { e.stopPropagation(); handleDeleteEvent(item.id); }} className="w-full text-left px-4 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 flex items-center gap-2">
+                        <Trash2 className="w-4 h-4" /> Delete Event
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
