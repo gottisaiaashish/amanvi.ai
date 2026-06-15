@@ -37,8 +37,8 @@ export default function AmanviSecretary() {
     setIsLoading(true);
 
     try {
-      // Reverted back to Render URL for your App
-      const response = await fetch('https://amanvi-ai.onrender.com/api/chat', {
+      // Directly hit n8n webhook-test to bypass broken backend
+      const response = await fetch('https://unzip-trance-backup.ngrok-free.dev/webhook-test/amanvi-chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -49,16 +49,31 @@ export default function AmanviSecretary() {
         }),
       });
 
-      const data = await response.json();
+      let data;
+      try {
+        data = await response.json();
+      } catch (e) {
+        data = await response.text();
+      }
       
-      if (!response.ok || !data.success) {
-        throw new Error(data.message || "Failed to communicate with API");
+      if (!response.ok) {
+        throw new Error("Failed to communicate with API");
+      }
+      
+      // Parse n8n specific response format (often an array or object with 'output')
+      let replyText = "Done.";
+      if (Array.isArray(data) && data.length > 0) {
+        replyText = data[0].output || data[0].text || data[0].reply || JSON.stringify(data[0]);
+      } else if (data && typeof data === 'object') {
+        replyText = data.output || data.text || data.reply || JSON.stringify(data);
+      } else if (typeof data === 'string') {
+        replyText = data;
       }
       
       const aiMessage = {
         id: (Date.now() + 1).toString(),
         sender: 'Amanvi',
-        text: data.reply || "Done.",
+        text: replyText,
       };
       setMessages((prev) => [...prev, aiMessage]);
     } catch (error) {

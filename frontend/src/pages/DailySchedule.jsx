@@ -1,45 +1,97 @@
 import { useState, useEffect } from 'react';
 import { PhoneCall, CheckCircle2, Sparkles, MoreHorizontal, Video, Loader2 } from 'lucide-react';
 
+import { LocalNotifications } from '@capacitor/local-notifications';
+
 export default function DailySchedule() {
   const [schedule, setSchedule] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    // Request notification permissions
+    const requestPermissions = async () => {
+      try {
+        await LocalNotifications.requestPermissions();
+      } catch (e) {
+        console.warn("Could not request notification permissions:", e);
+      }
+    };
+    requestPermissions();
+
     const fetchTasks = async () => {
       try {
-        const response = await fetch('https://amanvi-ai.onrender.com/api/tasks');
+        // Fetch from n8n webhook directly!
+        const response = await fetch('https://unzip-trance-backup.ngrok-free.dev/webhook-test/get-schedule');
         const data = await response.json();
         
-        const formattedSchedule = data.map(task => {
+        const now = new Date();
+        const formattedSchedule = [];
+
+        // Parse n8n Google Calendar response (usually an array of items)
+        const events = Array.isArray(data) ? data : (data.items || []);
+
+        for (const event of events) {
+          // Some events might just have dates (all-day), some have dateTime
+          const startTimeStr = event.start?.dateTime || event.start?.date;
+          if (!startTimeStr) continue;
+          
+          const startTime = new Date(startTimeStr);
+          const title = event.summary || 'Untitled Event';
+          const desc = event.description || '30m';
+
           let typeStr = 'task';
           let color = 'bg-emerald-50';
           let text = 'text-emerald-700';
           let border = 'border-emerald-100';
 
-          // Basic logic to determine type/colors based on title or priority
-          if (task.title.toLowerCase().includes('call') || task.title.toLowerCase().includes('pitch')) {
+          if (title.toLowerCase().includes('call') || title.toLowerCase().includes('pitch')) {
             typeStr = 'call';
             color = 'bg-blue-50'; text = 'text-blue-700'; border = 'border-blue-100';
-          } else if (task.title.toLowerCase().includes('sync') || task.title.toLowerCase().includes('meeting')) {
+          } else if (title.toLowerCase().includes('sync') || title.toLowerCase().includes('meeting')) {
             typeStr = 'meeting';
             color = 'bg-orange-50'; text = 'text-orange-700'; border = 'border-orange-100';
-          } else if (task.priority === 'high') {
+          } else if (title.toLowerCase().includes('reminder') || title.toLowerCase().includes('water')) {
             typeStr = 'focus';
             color = 'bg-purple-50'; text = 'text-purple-700'; border = 'border-purple-100';
           }
 
-          return {
-            id: task._id,
-            time: task.dueDate ? new Date(task.dueDate).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'TBD',
+          formattedSchedule.push({
+            id: event.id || Math.random().toString(),
+            time: startTime.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
             type: typeStr,
-            title: task.title,
-            duration: task.description || '30m',
+            title: title,
+            duration: desc,
             color,
             text,
-            border,
-            participants: task.title.includes('Design') ? ['D', 'A'] : null
-          };
+            border
+          });
+
+          // Schedule a native Android notification exactly when it starts!
+          if (startTime > now) {
+            try {
+              await LocalNotifications.schedule({
+                notifications: [
+                  {
+                    title: `Amanvi AI: ${title}`,
+                    body: "It's time for your scheduled event!",
+                    id: Math.floor(Math.random() * 100000), // unique ID
+                    schedule: { at: startTime },
+                    actionTypeId: "",
+                    extra: null
+                  }
+                ]
+              });
+            } catch (err) {
+              console.warn("Could not schedule local notification", err);
+            }
+          }
+        }
+
+        // Sort chronologically
+        formattedSchedule.sort((a, b) => {
+           const timeA = new Date(`1970/01/01 ${a.time}`);
+           const timeB = new Date(`1970/01/01 ${b.time}`);
+           return timeA - timeB;
         });
 
         setSchedule(formattedSchedule);
@@ -57,7 +109,9 @@ export default function DailySchedule() {
     <div className="max-w-4xl mx-auto p-8 md:p-12 pb-32">
       <header className="mb-10">
         <h1 className="text-3xl font-bold tracking-tight text-gray-900 mb-2">Today's Schedule</h1>
-        <p className="text-gray-500">October 24, 2026</p>
+        <p className="text-gray-500">
+          {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+        </p>
       </header>
 
       <div className="bg-gradient-to-r from-gray-900 to-black text-white rounded-3xl p-6 mb-10 shadow-xl flex gap-4 items-start relative overflow-hidden">
