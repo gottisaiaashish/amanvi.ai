@@ -8,11 +8,19 @@ const __dirname = dirname(__filename);
 
 let serviceAccount;
 
-try {
-  const serviceAccountPath = join(__dirname, 'firebase-service-account.json');
-  serviceAccount = JSON.parse(readFileSync(serviceAccountPath, 'utf8'));
-} catch (error) {
-  console.log('firebase-service-account.json not found locally. Ensure it is uploaded to Render as a secret file, or use environment variables.');
+if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+  try {
+    serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+  } catch (err) {
+    console.error('Failed to parse FIREBASE_SERVICE_ACCOUNT env variable');
+  }
+} else {
+  try {
+    const serviceAccountPath = join(__dirname, 'firebase-service-account.json');
+    serviceAccount = JSON.parse(readFileSync(serviceAccountPath, 'utf8'));
+  } catch (error) {
+    console.log('firebase-service-account.json not found locally. Ensure FIREBASE_SERVICE_ACCOUNT is set.');
+  }
 }
 
 if (serviceAccount && !admin.apps.length) {
