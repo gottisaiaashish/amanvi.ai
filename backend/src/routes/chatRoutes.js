@@ -48,6 +48,8 @@ router.post('/', async (req, res) => {
       const jsonData = JSON.parse(data);
       if (jsonData && jsonData.reply) {
         replyText = jsonData.reply;
+      } else if (jsonData && jsonData.output) {
+        replyText = jsonData.output;
       }
     } catch(e) {
       // Not JSON, ignore

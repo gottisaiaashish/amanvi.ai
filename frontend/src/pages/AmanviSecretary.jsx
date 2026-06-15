@@ -9,7 +9,7 @@ export default function AmanviSecretary() {
     {
       id: '1',
       sender: 'Amanvi',
-      text: 'Hi! I am Amanvi, your personal AI. Nenu active ga unnanu. Emi cheyali ivvala?',
+      text: 'Hi! I am Amanvi, your personal AI. how can i help you?',
     }
   ]);
   const messagesEndRef = useRef(null);
