@@ -7,5 +7,10 @@
     "allowNavigation": [
       "amanvi-ai.vercel.app"
     ]
+  },
+  "plugins": {
+    "PushNotifications": {
+      "presentationOptions": ["badge", "sound", "alert"]
+    }
   }
 }

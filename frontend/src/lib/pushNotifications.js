@@ -13,6 +13,20 @@ export const setupPushNotifications = async () => {
   const { receive } = await PushNotifications.requestPermissions();
 
   if (receive === 'granted') {
+    // Create a channel for Android 8.0+
+    try {
+      await PushNotifications.createChannel({
+        id: 'default',
+        name: 'Default',
+        description: 'Default Amanvi Notification Channel',
+        importance: 5,
+        visibility: 1,
+      });
+      console.log('Push channel created');
+    } catch (e) {
+      console.log('Failed to create channel, might be iOS', e);
+    }
+
     // Register with Apple / Google to receive push via APNS/FCM
     await PushNotifications.register();
   } else {
