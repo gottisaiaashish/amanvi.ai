@@ -1,11 +1,7 @@
 import express from 'express';
 import fetch from 'node-fetch'; // Requires node-fetch or native fetch in Node 18+
-import { GoogleGenAI } from '@google/genai';
 
 const router = express.Router();
-
-// Initialize Gemini API
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 router.post('/', async (req, res) => {
   try {
@@ -74,23 +70,8 @@ router.post('/', async (req, res) => {
         // Not JSON, ignore
       }
     } catch (n8nError) {
-      console.warn(`[Fallback] n8n is offline or unreachable (${n8nError.message}). Falling back to Gemini...`);
-      
-      try {
-        if (!process.env.GEMINI_API_KEY) {
-           throw new Error("GEMINI_API_KEY is not set in environment variables.");
-        }
-        
-        const geminiResponse = await ai.models.generateContent({
-          model: 'gemini-2.5-flash',
-          contents: message,
-        });
-        
-        replyText = geminiResponse.text;
-      } catch (geminiError) {
-        console.error('Error with Gemini fallback:', geminiError);
-        return res.status(500).json({ success: false, message: 'Both n8n and Gemini fallback failed.', error: geminiError.message });
-      }
+      console.warn(`[Fallback] n8n is offline or unreachable (${n8nError.message}). Sending error to trigger frontend AmanviBrain...`);
+      return res.status(500).json({ success: false, message: 'n8n AI Brain is offline', error: n8nError.message });
     }
 
     res.json({ success: true, reply: replyText });
