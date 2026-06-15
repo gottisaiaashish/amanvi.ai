@@ -46,11 +46,22 @@ router.post('/', async (req, res) => {
     let replyText = "Message forwarded to Amanvi AI Brain (n8n).";
     
     try {
-      const jsonData = JSON.parse(data);
+      let jsonData = JSON.parse(data);
+      
+      // n8n returns an array of items by default, so get the first item if it's an array
+      if (Array.isArray(jsonData) && jsonData.length > 0) {
+        jsonData = jsonData[0];
+      }
+
       if (jsonData && jsonData.reply) {
         replyText = jsonData.reply;
       } else if (jsonData && jsonData.output) {
         replyText = jsonData.output;
+      } else if (jsonData && jsonData.text) {
+        replyText = jsonData.text;
+      } else {
+        // Fallback: Just convert the whole JSON to string so we can see what it returned
+        replyText = typeof jsonData === 'object' ? JSON.stringify(jsonData) : String(jsonData);
       }
     } catch(e) {
       // Not JSON, ignore
