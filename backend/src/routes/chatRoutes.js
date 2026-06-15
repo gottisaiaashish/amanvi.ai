@@ -1,7 +1,11 @@
 import express from 'express';
 import fetch from 'node-fetch'; // Requires node-fetch or native fetch in Node 18+
+import { GoogleGenAI } from '@google/genai';
 
 const router = express.Router();
+
+// Initialize Gemini API
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 router.post('/', async (req, res) => {
   try {
@@ -23,55 +27,77 @@ router.post('/', async (req, res) => {
       });
     }
 
-    // Forward the chat message to n8n
-    const response = await fetch(n8nWebhookUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        email: email || 'ashish@amanvi.ai',
-        message: message,
-        timestamp: new Date().toISOString()
-      }),
-    });
+    let replyText = "";
 
-    if (!response.ok) {
-      throw new Error(`n8n responded with status: ${response.status}`);
-    }
-
-    // Usually n8n will process it asynchronously and send a webhook back,
-    // but if it responds immediately, we can parse it here.
-    const data = await response.text();
-    let replyText = "Message forwarded to Amanvi AI Brain (n8n).";
-    
     try {
-      let jsonData = JSON.parse(data);
-      
-      // n8n returns an array of items by default, so get the first item if it's an array
-      if (Array.isArray(jsonData) && jsonData.length > 0) {
-        jsonData = jsonData[0];
+      // Forward the chat message to n8n
+      const response = await fetch(n8nWebhookUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: email || 'ashish@amanvi.ai',
+          message: message,
+          timestamp: new Date().toISOString()
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`n8n responded with status: ${response.status}`);
       }
 
-      if (jsonData && jsonData.reply) {
-        replyText = jsonData.reply;
-      } else if (jsonData && jsonData.output) {
-        replyText = jsonData.output;
-      } else if (jsonData && jsonData.text) {
-        replyText = jsonData.text;
-      } else {
-        // Fallback: Just convert the whole JSON to string so we can see what it returned
-        replyText = typeof jsonData === 'object' ? JSON.stringify(jsonData) : String(jsonData);
+      // Usually n8n will process it asynchronously and send a webhook back,
+      // but if it responds immediately, we can parse it here.
+      const data = await response.text();
+      replyText = "Message forwarded to Amanvi AI Brain (n8n).";
+      
+      try {
+        let jsonData = JSON.parse(data);
+        
+        // n8n returns an array of items by default, so get the first item if it's an array
+        if (Array.isArray(jsonData) && jsonData.length > 0) {
+          jsonData = jsonData[0];
+        }
+
+        if (jsonData && jsonData.reply) {
+          replyText = jsonData.reply;
+        } else if (jsonData && jsonData.output) {
+          replyText = jsonData.output;
+        } else if (jsonData && jsonData.text) {
+          replyText = jsonData.text;
+        } else {
+          // Fallback: Just convert the whole JSON to string so we can see what it returned
+          replyText = typeof jsonData === 'object' ? JSON.stringify(jsonData) : String(jsonData);
+        }
+      } catch(e) {
+        // Not JSON, ignore
       }
-    } catch(e) {
-      // Not JSON, ignore
+    } catch (n8nError) {
+      console.warn(`[Fallback] n8n is offline or unreachable (${n8nError.message}). Falling back to Gemini...`);
+      
+      try {
+        if (!process.env.GEMINI_API_KEY) {
+           throw new Error("GEMINI_API_KEY is not set in environment variables.");
+        }
+        
+        const geminiResponse = await ai.models.generateContent({
+          model: 'gemini-2.5-flash',
+          contents: message,
+        });
+        
+        replyText = geminiResponse.text;
+      } catch (geminiError) {
+        console.error('Error with Gemini fallback:', geminiError);
+        return res.status(500).json({ success: false, message: 'Both n8n and Gemini fallback failed.', error: geminiError.message });
+      }
     }
 
     res.json({ success: true, reply: replyText });
 
   } catch (error) {
-    console.error('Error forwarding chat to n8n:', error);
-    res.status(500).json({ success: false, message: 'Failed to communicate with AI Brain', error: error.message });
+    console.error('Error in chat route:', error);
+    res.status(500).json({ success: false, message: 'Failed to process chat request', error: error.message });
   }
 });
 

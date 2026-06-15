@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 
 export default function AmanviSecretary() {
   const [input, setInput] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const [messages, setMessages] = useState([
     {
       id: '1',
@@ -23,7 +24,7 @@ export default function AmanviSecretary() {
   }, [messages]);
 
   const handleSend = async () => {
-    if (!input.trim()) return;
+    if (!input.trim() || isLoading) return;
 
     const userMessage = {
       id: Date.now().toString(),
@@ -33,8 +34,10 @@ export default function AmanviSecretary() {
 
     setMessages((prev) => [...prev, userMessage]);
     setInput('');
+    setIsLoading(true);
 
     try {
+      // Reverted back to Render URL for your App
       const response = await fetch('https://amanvi-ai.onrender.com/api/chat', {
         method: 'POST',
         headers: {
@@ -48,6 +51,10 @@ export default function AmanviSecretary() {
 
       const data = await response.json();
       
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || "Failed to communicate with API");
+      }
+      
       const aiMessage = {
         id: (Date.now() + 1).toString(),
         sender: 'Amanvi',
@@ -55,12 +62,20 @@ export default function AmanviSecretary() {
       };
       setMessages((prev) => [...prev, aiMessage]);
     } catch (error) {
-      console.error("Chat error:", error);
+      console.warn("API/n8n chat failed. Falling back to local AmanviBrain:", error);
+      
+      // Fallback to local AmanviBrain
+      const fallbackData = AmanviBrain.processInput(userMessage.text);
+      
       setMessages((prev) => [...prev, {
         id: (Date.now() + 1).toString(),
         sender: 'Amanvi',
-        text: "Sorry, I am having trouble connecting to my Brain right now.",
+        text: fallbackData.text,
+        draft: fallbackData.draft,
+        action: fallbackData.action
       }]);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -108,6 +123,16 @@ export default function AmanviSecretary() {
             )}
           </div>
         ))}
+        {isLoading && (
+          <div className="flex flex-col gap-2 items-start">
+            <span className="text-[11px] font-bold text-[#8E5E67] uppercase tracking-widest px-2">AMANVI</span>
+            <div className="bg-gradient-to-br from-[#faebeb] to-[#fcf3f4] border border-[#f0e1e2] rounded-3xl rounded-tl-sm px-6 py-5 shadow-sm flex items-center gap-1.5">
+              <motion.div className="w-2 h-2 bg-rose-400 rounded-full" animate={{ y: [0, -4, 0] }} transition={{ repeat: Infinity, duration: 0.6, delay: 0 }} />
+              <motion.div className="w-2 h-2 bg-rose-400 rounded-full" animate={{ y: [0, -4, 0] }} transition={{ repeat: Infinity, duration: 0.6, delay: 0.2 }} />
+              <motion.div className="w-2 h-2 bg-rose-400 rounded-full" animate={{ y: [0, -4, 0] }} transition={{ repeat: Infinity, duration: 0.6, delay: 0.4 }} />
+            </div>
+          </div>
+        )}
         <div ref={messagesEndRef} />
       </div>
 
@@ -132,9 +157,10 @@ export default function AmanviSecretary() {
         <div className="absolute inset-y-0 right-2 flex items-center">
           <button 
             onClick={handleSend}
-            className="bg-[#602835] hover:bg-[#4d202a] text-white p-3 px-6 rounded-full font-bold text-xs tracking-wider transition-all shadow-sm"
+            disabled={isLoading}
+            className={`${isLoading ? 'bg-gray-400' : 'bg-[#602835] hover:bg-[#4d202a]'} text-white p-3 px-6 rounded-full font-bold text-xs tracking-wider transition-all shadow-sm`}
           >
-            SEND
+            {isLoading ? 'WAIT...' : 'SEND'}
           </button>
         </div>
       </div>
