@@ -37,8 +37,8 @@ export default function AmanviSecretary() {
     setIsLoading(true);
 
     try {
-      // Directly hit n8n webhook-test to bypass broken backend
-      const response = await fetch('https://unzip-trance-backup.ngrok-free.dev/webhook-test/amanvi-chat', {
+      // Directly hit n8n webhook to bypass broken backend
+      const response = await fetch('https://unzip-trance-backup.ngrok-free.dev/webhook/amanvi-chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
