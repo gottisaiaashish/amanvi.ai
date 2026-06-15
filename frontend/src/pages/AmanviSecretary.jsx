@@ -22,7 +22,7 @@ export default function AmanviSecretary() {
     scrollToBottom();
   }, [messages]);
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!input.trim()) return;
 
     const userMessage = {
@@ -34,17 +34,34 @@ export default function AmanviSecretary() {
     setMessages((prev) => [...prev, userMessage]);
     setInput('');
 
-    setTimeout(() => {
-      const response = AmanviBrain.processInput(userMessage.text);
+    try {
+      const response = await fetch('https://amanvi-ai.onrender.com/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: 'ashish@amanvi.ai', // Default email
+          message: userMessage.text
+        }),
+      });
+
+      const data = await response.json();
+      
       const aiMessage = {
         id: (Date.now() + 1).toString(),
         sender: 'Amanvi',
-        text: response.text,
-        draft: response.draft,
-        action: response.action,
+        text: data.reply || "Done.",
       };
       setMessages((prev) => [...prev, aiMessage]);
-    }, 600);
+    } catch (error) {
+      console.error("Chat error:", error);
+      setMessages((prev) => [...prev, {
+        id: (Date.now() + 1).toString(),
+        sender: 'Amanvi',
+        text: "Sorry, I am having trouble connecting to my Brain right now.",
+      }]);
+    }
   };
 
   const handleKeyDown = (e) => {
