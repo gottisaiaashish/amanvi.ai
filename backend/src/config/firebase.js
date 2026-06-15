@@ -1,4 +1,4 @@
-import admin from 'firebase-admin';
+import { initializeApp, getApps, cert } from 'firebase-admin/app';
 import { readFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
@@ -23,11 +23,14 @@ if (process.env.FIREBASE_SERVICE_ACCOUNT) {
   }
 }
 
-if (serviceAccount && !admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount)
+let app;
+if (serviceAccount && getApps().length === 0) {
+  app = initializeApp({
+    credential: cert(serviceAccount)
   });
   console.log('Firebase Admin initialized successfully');
+} else if (getApps().length > 0) {
+  app = getApps()[0];
 }
 
-export default admin;
+export default app;

@@ -1,5 +1,11 @@
 {
   "appId": "com.amanvi.ai",
-  "appName": "AmanviAI",
-  "webDir": "dist"
+  "appName": "AI",
+  "webDir": "dist",
+  "server": {
+    "url": "https://amanvi-ai.vercel.app",
+    "allowNavigation": [
+      "amanvi-ai.vercel.app"
+    ]
+  }
 }
