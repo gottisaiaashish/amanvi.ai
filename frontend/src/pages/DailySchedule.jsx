@@ -21,7 +21,11 @@ export default function DailySchedule() {
     const fetchTasks = async () => {
       try {
         // Fetch from n8n webhook directly!
-        const response = await fetch('https://unzip-trance-backup.ngrok-free.dev/webhook/get-schedule');
+        const response = await fetch('https://unzip-trance-backup.ngrok-free.dev/webhook/get-schedule', {
+          headers: {
+            'ngrok-skip-browser-warning': 'true'
+          }
+        });
         const data = await response.json();
         
         const now = new Date();
