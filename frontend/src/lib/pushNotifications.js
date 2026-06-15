@@ -20,10 +20,25 @@ export const setupPushNotifications = async () => {
   }
 
   // On success, we should be able to receive notifications
-  PushNotifications.addListener('registration', (token) => {
+  PushNotifications.addListener('registration', async (token) => {
     console.log('Push registration success, token: ' + token.value);
-    // TODO: Send this token to your backend!
-    // Example: sendTokenToBackend(token.value);
+    
+    try {
+      // Send the token to the backend
+      const response = await fetch('https://amanvi-ai.onrender.com/api/users/fcm-token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: 'ashish@amanvi.ai', // Default user for now
+          token: token.value
+        })
+      });
+      console.log('Token saved to backend:', await response.json());
+    } catch (err) {
+      console.error('Failed to send token to backend:', err);
+    }
   });
 
   // Some issue with our setup and push will not work
