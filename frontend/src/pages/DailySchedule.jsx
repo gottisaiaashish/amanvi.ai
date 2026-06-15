@@ -1,12 +1,57 @@
-import { PhoneCall, CheckCircle2, Sparkles, MoreHorizontal, Video } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { PhoneCall, CheckCircle2, Sparkles, MoreHorizontal, Video, Loader2 } from 'lucide-react';
 
 export default function DailySchedule() {
-  const schedule = [
-    { time: '09:00 AM', type: 'focus', title: 'Deep Work: System Architecture', duration: '2h', color: 'bg-purple-50', text: 'text-purple-700', border: 'border-purple-100' },
-    { time: '11:30 AM', type: 'call', title: 'Series A Pitch with Sequoia', duration: '45m', color: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-100', participants: ['S'] },
-    { time: '02:00 PM', type: 'task', title: 'Review n8n webhook logs', duration: '30m', color: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-100' },
-    { time: '04:00 PM', type: 'meeting', title: 'Design Sync', duration: '1h', color: 'bg-orange-50', text: 'text-orange-700', border: 'border-orange-100', participants: ['D', 'A'] },
-  ];
+  const [schedule, setSchedule] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchTasks = async () => {
+      try {
+        const response = await fetch('https://amanvi-ai.onrender.com/api/tasks');
+        const data = await response.json();
+        
+        const formattedSchedule = data.map(task => {
+          let typeStr = 'task';
+          let color = 'bg-emerald-50';
+          let text = 'text-emerald-700';
+          let border = 'border-emerald-100';
+
+          // Basic logic to determine type/colors based on title or priority
+          if (task.title.toLowerCase().includes('call') || task.title.toLowerCase().includes('pitch')) {
+            typeStr = 'call';
+            color = 'bg-blue-50'; text = 'text-blue-700'; border = 'border-blue-100';
+          } else if (task.title.toLowerCase().includes('sync') || task.title.toLowerCase().includes('meeting')) {
+            typeStr = 'meeting';
+            color = 'bg-orange-50'; text = 'text-orange-700'; border = 'border-orange-100';
+          } else if (task.priority === 'high') {
+            typeStr = 'focus';
+            color = 'bg-purple-50'; text = 'text-purple-700'; border = 'border-purple-100';
+          }
+
+          return {
+            id: task._id,
+            time: task.dueDate ? new Date(task.dueDate).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'TBD',
+            type: typeStr,
+            title: task.title,
+            duration: task.description || '30m',
+            color,
+            text,
+            border,
+            participants: task.title.includes('Design') ? ['D', 'A'] : null
+          };
+        });
+
+        setSchedule(formattedSchedule);
+      } catch (error) {
+        console.error("Failed to fetch schedule:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchTasks();
+  }, []);
 
   return (
     <div className="max-w-4xl mx-auto p-8 md:p-12 pb-32">
@@ -29,7 +74,19 @@ export default function DailySchedule() {
 
       <div className="space-y-4 relative">
         <div className="absolute left-[5.5rem] top-4 bottom-4 w-px bg-gray-100 z-0"></div>
-        {schedule.map((item, i) => (
+        
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center py-20 text-gray-400 relative z-10 bg-white">
+            <Loader2 className="w-8 h-8 animate-spin mb-4 text-rose-300" />
+            <p>Amanvi is fetching your schedule...</p>
+          </div>
+        ) : schedule.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 text-gray-400 relative z-10 bg-white">
+            <CheckCircle2 className="w-8 h-8 mb-4 text-gray-300" />
+            <p>Your schedule is clear for today!</p>
+          </div>
+        ) : (
+          schedule.map((item, i) => (
           <div key={i} className="flex gap-6 relative z-10 group cursor-pointer">
             <div className="w-20 pt-4 text-right shrink-0">
               <span className="text-sm font-semibold text-gray-900 block">{item.time.split(' ')[0]}</span>
@@ -59,7 +116,7 @@ export default function DailySchedule() {
               </div>
             </div>
           </div>
-        ))}
+        )))}
       </div>
     </div>
   );

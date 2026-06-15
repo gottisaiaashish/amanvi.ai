@@ -19,6 +19,7 @@ app.use(morgan('dev'));
 import userRoutes from './routes/userRoutes.js';
 import webhookRoutes from './routes/webhookRoutes.js';
 import chatRoutes from './routes/chatRoutes.js';
+import taskRoutes from './routes/taskRoutes.js';
 
 // Basic Route
 app.get('/api/health', (req, res) => {
@@ -29,6 +30,7 @@ app.get('/api/health', (req, res) => {
 app.use('/api/users', userRoutes);
 app.use('/api/webhooks', webhookRoutes);
 app.use('/api/chat', chatRoutes);
+app.use('/api/tasks', taskRoutes);
 
 // Database Connection
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/amanvi-ai';

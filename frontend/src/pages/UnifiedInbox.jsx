@@ -1,44 +1,51 @@
-import { Mail, MessageCircle, MessageSquare, Reply } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Mail, MessageCircle, MessageSquare, Reply, Loader2 } from 'lucide-react';
 
 export default function UnifiedInbox() {
-  const messages = [
-    { 
-      id: 1, 
-      source: 'WhatsApp', 
-      sender: 'Rahul (Client)', 
-      preview: '"Can we schedule the call for 5 PM instead? I am stuck in traffic."', 
-      time: '10:30 AM', 
-      color: 'bg-emerald-50', 
-      text: 'text-emerald-700',
-      border: 'border-emerald-100',
-      aiSummary: 'Requested to reschedule today\'s call to 5:00 PM.',
-      actions: ['RESCHEDULE TO 5 PM', 'REPLY']
-    },
-    { 
-      id: 2, 
-      source: 'Gmail', 
-      sender: 'investors@vc.com', 
-      preview: '"We reviewed the Series A Pitch Deck. Let\'s discuss the financial projections on Thursday."', 
-      time: '09:15 AM', 
-      color: 'bg-rose-50', 
-      text: 'text-rose-700',
-      border: 'border-rose-100',
-      aiSummary: 'Investors want to discuss financial projections this Thursday.',
-      actions: ['SCHEDULE FOR THURSDAY', 'ACKNOWLEDGE']
-    },
-    { 
-      id: 3, 
-      source: 'Instagram', 
-      sender: '@design_agency', 
-      preview: '"We loved the new UI you posted, let us collaborate on a project!"', 
-      time: '08:45 AM', 
-      color: 'bg-fuchsia-50', 
-      text: 'text-fuchsia-700',
-      border: 'border-fuchsia-100',
-      aiSummary: 'Potential collaboration lead from a design agency.',
-      actions: ['DRAFT REPLY']
-    },
-  ];
+  const [messages, setMessages] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchMessages = async () => {
+      try {
+        // Change to http://localhost:5000/api/webhooks/messages if testing backend locally
+        const response = await fetch('https://amanvi-ai.onrender.com/api/webhooks/messages');
+        const data = await response.json();
+        
+        const formattedMessages = data.map((msg) => {
+          let color = 'bg-gray-50';
+          let text = 'text-gray-700';
+          let border = 'border-gray-100';
+
+          if (msg.source === 'WhatsApp') { color = 'bg-emerald-50'; text = 'text-emerald-700'; border = 'border-emerald-100'; }
+          else if (msg.source === 'Gmail') { color = 'bg-rose-50'; text = 'text-rose-700'; border = 'border-rose-100'; }
+          else if (msg.source === 'Instagram') { color = 'bg-fuchsia-50'; text = 'text-fuchsia-700'; border = 'border-fuchsia-100'; }
+          else if (msg.source === 'System') { color = 'bg-blue-50'; text = 'text-blue-700'; border = 'border-blue-100'; }
+          
+          return {
+            id: msg._id,
+            source: msg.source,
+            sender: msg.sender,
+            preview: `"${msg.content}"`,
+            time: new Date(msg.receivedAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+            color,
+            text,
+            border,
+            aiSummary: msg.aiSummary || `Amanvi flagged this ${msg.source} message for your attention.`,
+            actions: ['DRAFT REPLY', 'MARK DONE']
+          };
+        });
+
+        setMessages(formattedMessages);
+      } catch (error) {
+        console.error("Failed to fetch messages:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchMessages();
+  }, []);
 
   return (
     <div className="max-w-4xl mx-auto p-8 md:p-12 pb-32">
@@ -57,7 +64,18 @@ export default function UnifiedInbox() {
       </header>
 
       <div className="space-y-6">
-        {messages.map((msg) => (
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center py-20 text-gray-400">
+            <Loader2 className="w-8 h-8 animate-spin mb-4 text-rose-300" />
+            <p>Amanvi is fetching your messages...</p>
+          </div>
+        ) : messages.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 text-gray-400">
+            <MessageSquare className="w-8 h-8 mb-4 text-gray-300" />
+            <p>You're all caught up! No new messages.</p>
+          </div>
+        ) : (
+          messages.map((msg) => (
           <div key={msg.id} className="flex flex-col md:flex-row gap-4 md:gap-8 group">
             <div className="md:w-24 shrink-0 pt-4">
               <span className="text-sm font-semibold text-gray-900 block">{msg.time}</span>
@@ -100,7 +118,7 @@ export default function UnifiedInbox() {
               </div>
             </div>
           </div>
-        ))}
+        )))}
       </div>
     </div>
   );
