@@ -11,8 +11,8 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ success: false, message: 'Message is required' });
     }
 
-    // Use env var or default to the new render URL
-    const n8nWebhookUrl = process.env.N8N_WEBHOOK_URL || 'https://amanvi-n8n-brain.onrender.com/webhook/amanvi-chat';
+    // Use env var or default to the new ngrok URL
+    const n8nWebhookUrl = process.env.N8N_WEBHOOK_URL || 'https://unzip-trance-backup.ngrok-free.dev/webhook/amanvi-chat';
     
     // If n8n webhook isn't configured yet, just return a success placeholder
     if (!n8nWebhookUrl) {
