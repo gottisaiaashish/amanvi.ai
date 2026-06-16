@@ -31,8 +31,8 @@ export const initializeWhatsApp = () => {
         
         // Forward message to n8n Webhook
         try {
-            // Change this URL to your actual n8n webhook URL for processing incoming messages
-            const webhookUrl = process.env.N8N_WHATSAPP_WEBHOOK || 'https://unzip-trance-backup.ngrok-free.dev/webhook-test/whatsapp-incoming';
+            // Changed to production webhook URL (removed -test) so it runs continuously
+            const webhookUrl = process.env.N8N_WHATSAPP_WEBHOOK || 'http://localhost:5678/webhook/whatsapp-incoming';
             
             await fetch(webhookUrl, {
                 method: 'POST',
