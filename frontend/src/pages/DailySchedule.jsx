@@ -15,7 +15,7 @@ export default function DailySchedule() {
     setAllSchedules(prev => prev.filter(item => item.id !== id));
     setExpandedMenuId(null);
     try {
-      await fetch('https://unzip-trance-backup.ngrok-free.dev/webhook/delete-schedule', {
+      await fetch('https://unzip-trance-backup.ngrok-free.dev/webhook-test/delete-schedule', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -60,7 +60,7 @@ export default function DailySchedule() {
     const fetchTasks = async () => {
       try {
         // Fetch from n8n webhook directly!
-        const response = await fetch('https://unzip-trance-backup.ngrok-free.dev/webhook/get-schedule', {
+        const response = await fetch('https://unzip-trance-backup.ngrok-free.dev/webhook-test/get-schedule', {
           headers: {
             'ngrok-skip-browser-warning': 'true'
           }
@@ -72,6 +72,16 @@ export default function DailySchedule() {
 
         // Parse n8n Google Calendar response (usually an array of items)
         const events = Array.isArray(data) ? data : (data.items || []);
+
+        // Clear all pending notifications before scheduling new ones to prevent duplicates
+        try {
+          const pending = await LocalNotifications.getPending();
+          if (pending.notifications && pending.notifications.length > 0) {
+            await LocalNotifications.cancel(pending);
+          }
+        } catch (e) {
+          console.warn("Could not cancel pending notifications", e);
+        }
 
         for (const event of events) {
           // Some events might just have dates (all-day), some have dateTime
@@ -159,11 +169,13 @@ export default function DailySchedule() {
 
   return (
     <div className="max-w-4xl mx-auto p-8 md:p-12 pb-32">
-      <header className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight text-gray-900 mb-2">My Schedule</h1>
-        <p className="text-gray-500">
-          {selectedDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
-        </p>
+      <header className="mb-8 flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-gray-900 mb-2">My Schedule</h1>
+          <p className="text-gray-500">
+            {selectedDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+          </p>
+        </div>
       </header>
 
       {/* HORIZONTAL DATE STRIP */}

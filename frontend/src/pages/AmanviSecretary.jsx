@@ -2,17 +2,28 @@ import { useState, useRef, useEffect } from 'react';
 import { AmanviBrain } from '../utils/AmanviBrain';
 import { Mic, Send, Command } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { LocalNotifications } from '@capacitor/local-notifications';
 
 export default function AmanviSecretary() {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [messages, setMessages] = useState([
-    {
-      id: '1',
-      sender: 'Amanvi',
-      text: 'Hi! I am Amanvi, your personal AI. how can i help you?',
+  const [messages, setMessages] = useState(() => {
+    const saved = localStorage.getItem('amanvi_chat_history');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error("Failed to parse chat history");
+      }
     }
-  ]);
+    return [
+      {
+        id: '1',
+        sender: 'Amanvi',
+        text: 'Hi! I am Amanvi, your personal AI. how can i help you?',
+      }
+    ];
+  });
   const messagesEndRef = useRef(null);
 
   const scrollToBottom = () => {
@@ -20,8 +31,56 @@ export default function AmanviSecretary() {
   };
 
   useEffect(() => {
+    localStorage.setItem('amanvi_chat_history', JSON.stringify(messages));
     scrollToBottom();
   }, [messages]);
+
+  useEffect(() => {
+    let receivedListener;
+    
+    const setupListeners = async () => {
+      receivedListener = await LocalNotifications.addListener('localNotificationReceived', (notification) => {
+        // Only trigger chat message for reminders, not the instant confirmation
+        if (notification.title && notification.title.includes('Reminder')) {
+          setMessages(prev => {
+            const eventName = notification.title.replace('Amanvi AI Reminder: ', '');
+            // Check if we already just sent this to avoid duplicates
+            if (prev.length > 0 && prev[prev.length - 1].text.includes(eventName)) {
+              return prev;
+            }
+            const newMsg = {
+              id: Date.now().toString(),
+              sender: 'Amanvi',
+              text: `Ashish, Time aindi! It's time for your scheduled event: ${eventName}. 🚀`,
+            };
+            const updated = [...prev, newMsg];
+            localStorage.setItem('amanvi_chat_history', JSON.stringify(updated));
+            return updated;
+          });
+        }
+      });
+    };
+
+    setupListeners();
+
+    return () => {
+      if (receivedListener) {
+        receivedListener.remove();
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    const handleNavigate = (e) => {
+      if (e.detail) {
+        setInput(e.detail);
+        // Optional: you could also auto-send it by calling handleSend() 
+        // but letting the user see and edit the time is better!
+      }
+    };
+    window.addEventListener('AMANVI_NAVIGATE_CHAT', handleNavigate);
+    return () => window.removeEventListener('AMANVI_NAVIGATE_CHAT', handleNavigate);
+  }, []);
 
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
@@ -38,7 +97,7 @@ export default function AmanviSecretary() {
 
     try {
       // Directly hit n8n webhook to bypass broken backend
-      const response = await fetch('https://unzip-trance-backup.ngrok-free.dev/webhook/amanvi-chat', {
+      const response = await fetch('https://unzip-trance-backup.ngrok-free.dev/webhook-test/amanvi-chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -77,6 +136,24 @@ export default function AmanviSecretary() {
         text: replyText,
       };
       setMessages((prev) => [...prev, aiMessage]);
+
+      // If the reply mentions scheduling, show an immediate confirmation notification
+      if (replyText.toLowerCase().includes("schedul") || replyText.toLowerCase().includes("calendar") || replyText.toLowerCase().includes("book")) {
+        try {
+          await LocalNotifications.schedule({
+            notifications: [{
+              title: "Amanvi AI",
+              body: "Your new schedule has been confirmed! 📅",
+              id: Math.floor(Math.random() * 100000),
+              schedule: { at: new Date(Date.now() + 2000) }, // 2 seconds later
+              actionTypeId: "",
+              extra: null
+            }]
+          });
+        } catch (e) {
+          console.warn("Failed to send immediate notification", e);
+        }
+      }
     } catch (error) {
       console.warn("API/n8n chat failed. Falling back to local AmanviBrain:", error);
       
@@ -92,6 +169,39 @@ export default function AmanviSecretary() {
       }]);
     } finally {
       setIsLoading(false);
+      
+      // Quietly fetch schedules and update all background alarms so reminders work without opening the Schedule tab
+      try {
+        const schedRes = await fetch('https://unzip-trance-backup.ngrok-free.dev/webhook-test/get-schedule');
+        const data = await schedRes.json();
+        const events = Array.isArray(data) ? data : (data.items || []);
+        
+        const pending = await LocalNotifications.getPending();
+        if (pending.notifications && pending.notifications.length > 0) {
+          await LocalNotifications.cancel(pending);
+        }
+        
+        for (const event of events) {
+          const startTimeStr = event.start?.dateTime || event.start?.date;
+          if (!startTimeStr) continue;
+          
+          const startTime = new Date(startTimeStr);
+          if (startTime > new Date()) {
+            await LocalNotifications.schedule({
+              notifications: [{
+                title: `Amanvi AI Reminder: ${event.summary || 'Scheduled Event'}`,
+                body: "It's time for your event!",
+                id: Math.floor(Math.random() * 100000),
+                schedule: { at: startTime },
+                actionTypeId: "",
+                extra: null
+              }]
+            });
+          }
+        }
+      } catch (e) {
+        console.warn("Background schedule sync failed:", e);
+      }
     }
   };
 

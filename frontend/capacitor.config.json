@@ -2,12 +2,6 @@
   "appId": "com.amanvi.ai",
   "appName": "AI",
   "webDir": "dist",
-  "server": {
-    "url": "https://amanvi-ai.vercel.app",
-    "allowNavigation": [
-      "amanvi-ai.vercel.app"
-    ]
-  },
   "plugins": {
     "PushNotifications": {
       "presentationOptions": ["badge", "sound", "alert"]

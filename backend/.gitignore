@@ -1,2 +1,5 @@
 
 firebase-service-account.json
+
+.wwebjs_auth/
+.wwebjs_cache/

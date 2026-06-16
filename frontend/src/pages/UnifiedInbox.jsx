@@ -8,31 +8,29 @@ export default function UnifiedInbox() {
   useEffect(() => {
     const fetchMessages = async () => {
       try {
-        // Change to http://localhost:5000/api/webhooks/messages if testing backend locally
-        const response = await fetch('https://amanvi-ai.onrender.com/api/webhooks/messages');
+        // Fetch real data from local backend
+        const response = await fetch('http://localhost:5000/api/inbox');
         const data = await response.json();
         
         const formattedMessages = data.map((msg) => {
-          let color = 'bg-gray-50';
-          let text = 'text-gray-700';
-          let border = 'border-gray-100';
+          let color = 'bg-blue-50';
+          let text = 'text-blue-700';
+          let border = 'border-blue-100';
 
-          if (msg.source === 'WhatsApp') { color = 'bg-emerald-50'; text = 'text-emerald-700'; border = 'border-emerald-100'; }
-          else if (msg.source === 'Gmail') { color = 'bg-rose-50'; text = 'text-rose-700'; border = 'border-rose-100'; }
-          else if (msg.source === 'Instagram') { color = 'bg-fuchsia-50'; text = 'text-fuchsia-700'; border = 'border-fuchsia-100'; }
-          else if (msg.source === 'System') { color = 'bg-blue-50'; text = 'text-blue-700'; border = 'border-blue-100'; }
+          if (msg.urgency === 'high') { color = 'bg-rose-50'; text = 'text-rose-700'; border = 'border-rose-100'; }
+          else { color = 'bg-emerald-50'; text = 'text-emerald-700'; border = 'border-emerald-100'; }
           
           return {
-            id: msg._id,
-            source: msg.source,
+            id: msg.id,
+            source: msg.urgency === 'high' ? 'Urgent Note' : 'Message',
             sender: msg.sender,
-            preview: `"${msg.content}"`,
-            time: new Date(msg.receivedAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+            preview: `"${msg.message}"`,
+            time: new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
             color,
             text,
             border,
-            aiSummary: msg.aiSummary || `Amanvi flagged this ${msg.source} message for your attention.`,
-            actions: ['DRAFT REPLY', 'MARK DONE']
+            aiSummary: msg.urgency === 'high' ? `Amanvi marked this as urgent for your attention.` : `Amanvi saved this message for you.`,
+            actions: ['MARK DONE', 'REPLY']
           };
         });
 
