@@ -31,8 +31,20 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-// Default to permanent HTTPS ngrok backend or stored URL
-const DEFAULT_SERVER_URL = localStorage.getItem('amanvi_server_url') || 'https://unzip-trance-backup.ngrok-free.dev';
+// Auto-detect best server URL (Always use secure HTTPS ngrok on mobile)
+const getInitialServerUrl = () => {
+  const saved = localStorage.getItem('amanvi_server_url');
+  if (Capacitor.isNativePlatform()) {
+    // On native phone, always default to HTTPS ngrok tunnel so it never fails on Wi-Fi isolation
+    if (!saved || saved.includes('192.168.') || saved.includes('localhost')) {
+      localStorage.setItem('amanvi_server_url', 'https://unzip-trance-backup.ngrok-free.dev');
+      return 'https://unzip-trance-backup.ngrok-free.dev';
+    }
+  }
+  return saved || 'https://unzip-trance-backup.ngrok-free.dev';
+};
+
+const DEFAULT_SERVER_URL = getInitialServerUrl();
 
 export default function LaptopSentinel() {
   const [serverUrl, setServerUrl] = useState(DEFAULT_SERVER_URL);
