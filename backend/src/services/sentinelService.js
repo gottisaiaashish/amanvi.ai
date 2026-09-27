@@ -177,27 +177,43 @@ function addLog(type, message) {
   if (laptopState.logs.length > 50) laptopState.logs.pop();
 }
 
+// In-memory token cache for fast non-blocking delivery
+const activeFcmTokens = new Set();
+
 async function sendBootPushNotification() {
   try {
-    // Check Firebase is initialized
     if (!getApps().length) {
       console.log('[Sentinel FCM] Firebase Admin is not initialized, skipping push');
       return;
     }
 
-    const users = await User.find({ fcmToken: { $exists: true, $ne: null } });
-    if (!users || users.length === 0) {
-      console.log('[Sentinel FCM] No users with FCM token found');
-      return;
+    const tokens = new Set(activeFcmTokens);
+
+    // If MongoDB is connected, also fetch tokens from database
+    if (mongoose.connection.readyState === 1) {
+      try {
+        const users = await Promise.race([
+          User.find({ fcmToken: { $exists: true, $ne: null } }),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 2000))
+        ]);
+        if (users && users.length > 0) {
+          users.forEach(u => { if (u.fcmToken) tokens.add(u.fcmToken); });
+        }
+      } catch (dbErr) {
+        console.warn('[Sentinel FCM] Could not fetch DB tokens:', dbErr.message);
+      }
     }
 
-    const tokens = users.map(u => u.fcmToken).filter(Boolean);
-    if (tokens.length === 0) return;
+    const tokenList = Array.from(tokens);
+    if (tokenList.length === 0) {
+      console.log('[Sentinel FCM] No registered FCM tokens to dispatch to');
+      return;
+    }
 
     const messaging = getMessaging();
 
     const response = await messaging.sendEachForMulticast({
-      tokens,
+      tokens: tokenList,
       notification: {
         title: '🚨 Alert: Laptop Powered ON!',
         body: 'Your laptop just started. Open Amanvi AI to verify with Face Unlock.',
@@ -299,12 +315,16 @@ export const triggerTestBootAlert = async () => {
 // Register/update FCM token for a user
 export const registerFcmToken = async (userId, fcmToken) => {
   try {
-    await User.findOneAndUpdate(
-      { _id: userId },
-      { fcmToken },
-      { upsert: false }
-    );
-    addLog('FCM_REGISTER', `FCM token registered for user ${userId}`);
+    if (fcmToken) activeFcmTokens.add(fcmToken);
+
+    if (mongoose.connection.readyState === 1 && userId) {
+      await User.findOneAndUpdate(
+        { _id: userId },
+        { fcmToken },
+        { upsert: false }
+      );
+    }
+    addLog('FCM_REGISTER', `FCM token registered for ${userId || 'device'}`);
     return { success: true };
   } catch (err) {
     console.error('[Sentinel FCM Register Error]:', err.message);
