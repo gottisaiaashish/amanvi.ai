@@ -23,7 +23,14 @@ function App() {
       extraHeaders: { 'ngrok-skip-browser-warning': '69420' }
     });
 
+    let lastNotificationTime = 0;
+
     socket.on('laptop_boot_alert', async (data) => {
+      const now = Date.now();
+      // Debounce: prevent duplicate notification if received within 5 seconds
+      if (now - lastNotificationTime < 5000) return;
+      lastNotificationTime = now;
+
       try {
         if (Capacitor.isNativePlatform()) {
           await LocalNotifications.requestPermissions();
@@ -32,7 +39,7 @@ function App() {
               {
                 title: '🚨 Alert: Laptop Powered ON!',
                 body: `Laptop ${data?.state?.deviceName || 'gottiaashish'} started. Open Amanvi AI for Face Unlock.`,
-                id: Math.floor(Math.random() * 100000),
+                id: 101, // Single fixed ID so it never duplicates
                 sound: 'default'
               }
             ]

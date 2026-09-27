@@ -114,32 +114,10 @@ export default function LaptopSentinel() {
       if (state) setDeviceState(prev => ({ ...prev, ...state }));
     });
 
-    s.on('laptop_boot_alert', async (data) => {
+    s.on('laptop_boot_alert', (data) => {
       console.log('🚨 BOOT ALERT EVENT RECEIVED ON MOBILE:', data);
       if (data?.state) setDeviceState(prev => ({ ...prev, ...data.state }));
       setShowBootModal(true);
-
-      // Trigger Native Android System Notification in Status Bar
-      try {
-        if (Capacitor.isNativePlatform()) {
-          await LocalNotifications.requestPermissions();
-          await LocalNotifications.schedule({
-            notifications: [
-              {
-                title: '🚨 Alert: Laptop Powered ON!',
-                body: `Laptop ${data?.state?.deviceName || 'gottiaashish'} turned on. Tap to verify Face Unlock.`,
-                id: Math.floor(Math.random() * 100000),
-                sound: 'default',
-                actionTypeId: 'OPEN_SENTINEL',
-                extra: { type: 'BOOT_ALERT' }
-              }
-            ]
-          });
-          console.log('✅ Android Status Bar Notification scheduled successfully!');
-        }
-      } catch (err) {
-        console.error('Local notification error:', err);
-      }
     });
 
     s.on('sentinel_new_snapshot', (snapshot) => {
