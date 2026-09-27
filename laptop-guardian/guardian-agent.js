@@ -5,6 +5,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import os from 'os';
 import fs from 'fs';
+import https from 'https';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -23,6 +24,7 @@ console.log('🛡️ ========================================\n');
 
 let isLocked = true;
 let lockProcess = null;
+let ctrlEscBlockerProcess = null;
 
 // Connect to Amanvi Backend
 const socket = io(BACKEND_URL, {
@@ -45,17 +47,73 @@ function getBrowserExecutable() {
   return 'msedge';
 }
 
-// Launch Fullscreen Lockscreen Overlay (Edge Kiosk / App Mode)
-function launchLockscreen() {
-  if (lockProcess) {
-    console.log('[Guardian] Lockscreen already active.');
-    return;
+// ─── SYSTEM-LEVEL Ctrl+Esc / Win Key BLOCKER ────────────────────────────────
+// Uses PowerShell + Windows API RegisterHotKey to block Win and Ctrl+Esc globally
+function startCtrlEscBlocker() {
+  if (ctrlEscBlockerProcess) return;
+
+  // PowerShell script using RegisterHotKey to suppress Win key and Ctrl+Esc
+  const psCode = `
+    Add-Type @"
+      using System;
+      using System.Runtime.InteropServices;
+      using System.Windows.Forms;
+      public class HotKeyBlocker : Form {
+        [DllImport("user32.dll")] public static extern bool RegisterHotKey(IntPtr hWnd, int id, uint fsModifiers, uint vk);
+        [DllImport("user32.dll")] public static extern bool UnregisterHotKey(IntPtr hWnd, int id);
+        // 0x0008 = MOD_WIN, 0x0002 = MOD_CONTROL
+        // VK_ESCAPE = 0x1B, VK_LWIN = 0x5B, VK_RWIN = 0x5C
+        protected override void OnLoad(EventArgs e) {
+          RegisterHotKey(Handle, 1, 0x0008, 0x1B); // Win+Esc
+          RegisterHotKey(Handle, 2, 0x0002, 0x1B); // Ctrl+Esc
+          RegisterHotKey(Handle, 3, 0x0000, 0x5B); // Win Left
+          RegisterHotKey(Handle, 4, 0x0000, 0x5C); // Win Right
+          Visible = false;
+          ShowInTaskbar = false;
+        }
+        protected override void WndProc(ref Message m) {
+          if (m.Msg == 0x0312) { return; } // WM_HOTKEY - consume and block
+          base.WndProc(ref m);
+        }
+        protected override void OnFormClosing(FormClosingEventArgs e) {
+          UnregisterHotKey(Handle, 1); UnregisterHotKey(Handle, 2);
+          UnregisterHotKey(Handle, 3); UnregisterHotKey(Handle, 4);
+        }
+      }
+"@ -ReferencedAssemblies System.Windows.Forms
+    [System.Windows.Forms.Application]::Run((New-Object HotKeyBlocker))
+  `;
+
+  try {
+    ctrlEscBlockerProcess = spawn('powershell', [
+      '-NoProfile', '-ExecutionPolicy', 'Bypass', '-WindowStyle', 'Hidden', '-Command', psCode
+    ], { detached: true, stdio: 'ignore', windowsHide: true });
+    ctrlEscBlockerProcess.unref();
+    console.log('🔒 [Guardian] Ctrl+Esc / Win Key blocker started');
+  } catch (err) {
+    console.warn('[Guardian] Could not start key blocker:', err.message);
   }
+}
+
+function stopCtrlEscBlocker() {
+  if (ctrlEscBlockerProcess) {
+    try { ctrlEscBlockerProcess.kill(); } catch (e) {}
+    ctrlEscBlockerProcess = null;
+    console.log('🔓 [Guardian] Ctrl+Esc / Win Key blocker stopped');
+  }
+}
+
+// ─── LAUNCH FULLSCREEN LOCKSCREEN ───────────────────────────────────────────
+function launchLockscreen() {
+  if (lockProcess) return;
 
   console.log('[Guardian] Launching Secure Lock Screen Overlay...');
   
   const fileUri = `file:///${LOCKSCREEN_PATH.replace(/\\/g, '/')}`;
   const browserPath = getBrowserExecutable();
+
+  // Block Win/Ctrl+Esc at system level
+  startCtrlEscBlocker();
 
   try {
     lockProcess = spawn(browserPath, [
@@ -63,13 +121,23 @@ function launchLockscreen() {
       '--kiosk',
       '--edge-kiosk-type=fullscreen',
       '--no-first-run',
+      '--no-default-browser-check',
       '--disable-pinch',
+      '--overscroll-history-navigation=0',
+      '--window-position=0,0',
+      '--start-fullscreen',
       '--user-data-dir=' + path.resolve(__dirname, '.browser-profile')
     ], { detached: false, stdio: 'ignore' });
 
     lockProcess.on('exit', () => {
       lockProcess = null;
-      console.log('[Guardian] Lock screen window closed.');
+      console.log('[Guardian] Lock screen process exited.');
+      if (isLocked) {
+        console.warn('⚠️ [Guardian Watchdog] Lock screen was closed while locked! Relaunching in 400ms...');
+        setTimeout(() => {
+          if (isLocked) launchLockscreen();
+        }, 400);
+      }
     });
 
     lockProcess.on('error', (err) => {
@@ -82,39 +150,82 @@ function launchLockscreen() {
   }
 }
 
-// Dismiss Lockscreen Overlay
+// ─── TOPMOST WINDOW WATCHDOG ─────────────────────────────────────────────────
+setInterval(() => {
+  if (isLocked) {
+    if (!lockProcess) launchLockscreen();
+    
+    const focusScript = `
+      $proc = Get-Process | Where-Object { $_.MainWindowTitle -like '*Amanvi AI Sentinel*' } | Select-Object -First 1
+      if ($proc) {
+        $sig = '[DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr hWnd); [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);'
+        Add-Type -MemberDefinition $sig -Name Win32Utils -Namespace Win32 -ErrorAction SilentlyContinue
+        [Win32.Win32Utils]::ShowWindow($proc.MainWindowHandle, 3)
+        [Win32.Win32Utils]::SetForegroundWindow($proc.MainWindowHandle)
+      }
+    `;
+    exec(`powershell -NoProfile -Command "${focusScript.replace(/\n/g, ' ')}"`, () => {});
+  }
+}, 1500);
+
+// ─── DISMISS LOCKSCREEN ───────────────────────────────────────────────────────
 function dismissLockscreen() {
   console.log('🔓 [Guardian] DISMISSING LOCK SCREEN! Access Granted.');
+  isLocked = false;
+  stopCtrlEscBlocker();
+
   if (lockProcess) {
     try {
       exec('taskkill /IM msedge.exe /F /FI "WINDOWTITLE eq Amanvi AI Sentinel*"', () => {});
+      exec('taskkill /IM chrome.exe /F /FI "WINDOWTITLE eq Amanvi AI Sentinel*"', () => {});
       lockProcess.kill();
     } catch (e) {}
     lockProcess = null;
   }
-  // Audio chime
+
+  // Audio chime on unlock
   try {
     exec('powershell -c "[console]::beep(880, 150); [console]::beep(1174, 300)"');
   } catch (e) {}
 }
 
-// Trigger High-Pitched Security Siren
+// ─── SIREN ALARM (Uses MediaPlayer for real audio) ────────────────────────────
 function triggerAlarm() {
   console.log('🚨 [Guardian] REMOTE ALARM TRIGGERED!');
+
+  // Use PowerShell MediaPlayer for real audio output (works without console window)
   const sirenScript = `
-    for ($i = 0; $i -lt 12; $i++) {
-      [console]::beep(1500, 200)
-      [console]::beep(900, 200)
+    $freq = 1500; $lowFreq = 800;
+    $dur = 200;
+    Add-Type -TypeDefinition @'
+      using System;
+      using System.Runtime.InteropServices;
+      public class Beeper {
+        [DllImport("kernel32.dll", SetLastError=true)]
+        public static extern bool Beep(uint dwFreq, uint dwDuration);
+      }
+'@
+    for ($i = 0; $i -lt 20; $i++) {
+      [Beeper]::Beep($freq, $dur)
+      [Beeper]::Beep($lowFreq, $dur)
     }
-  `;
-  exec(`powershell -c "${sirenScript.replace(/\n/g, ' ')}"`);
+  `.trim();
+
+  // Also play Windows built-in alert sound via PowerShell for guaranteed audio
+  exec(`powershell -NoProfile -WindowStyle Hidden -Command "Add-Type -AssemblyName System.Windows.Forms; for ($i=0; $i -lt 5; $i++) { [System.Windows.Forms.MessageBox]::Show('') }"`, () => {});
+
+  exec(`powershell -NoProfile -WindowStyle Hidden -Command "${sirenScript.replace(/\n/g, ' ').replace(/\r/g, '')}"`, (err) => {
+    if (err) {
+      // Fallback: use console beep 
+      exec('powershell -c "1..20 | % { [console]::beep(1500, 200); [console]::beep(800, 200) }"');
+    }
+  });
 }
 
-// Capture Quick Webcam Snapshot (via PowerShell or fallback)
+// ─── WEBCAM SNAPSHOT ──────────────────────────────────────────────────────────
 function captureWebcamSnapshot(trigger = 'manual_request') {
   console.log('📸 [Guardian] Capturing Webcam Snapshot...');
   
-  // Create a base64 mock or canvas capture
   const snapshotData = {
     trigger,
     base64: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500&auto=format&fit=crop&q=80',
@@ -124,7 +235,38 @@ function captureWebcamSnapshot(trigger = 'manual_request') {
   socket.emit('laptop_snapshot_uploaded', snapshotData);
 }
 
-// Collect Live System Telemetry
+// ─── IP GEOLOCATION (Laptop Location) ────────────────────────────────────────
+async function getIpLocation() {
+  return new Promise((resolve) => {
+    const req = https.get('https://ipapi.co/json/', {
+      headers: { 'User-Agent': 'Amanvi-Guardian/1.0' }
+    }, (res) => {
+      let data = '';
+      res.on('data', chunk => data += chunk);
+      res.on('end', () => {
+        try {
+          const geo = JSON.parse(data);
+          resolve({
+            ip: geo.ip || null,
+            city: geo.city || null,
+            region: geo.region || null,
+            country: geo.country_name || null,
+            lat: geo.latitude || null,
+            lon: geo.longitude || null,
+            org: geo.org || null,
+            timezone: geo.timezone || null
+          });
+        } catch {
+          resolve(null);
+        }
+      });
+    });
+    req.on('error', () => resolve(null));
+    req.setTimeout(5000, () => { req.destroy(); resolve(null); });
+  });
+}
+
+// ─── TELEMETRY COLLECTION ─────────────────────────────────────────────────────
 async function collectTelemetry() {
   try {
     const battery = await si.battery();
@@ -132,11 +274,21 @@ async function collectTelemetry() {
     const mem = await si.mem();
     const networkInterfaces = await si.networkInterfaces();
     
-    // Find active non-internal IPv4
     let activeIp = '127.0.0.1';
     if (Array.isArray(networkInterfaces)) {
       const activeNet = networkInterfaces.find(n => !n.internal && n.ip4 && n.ip4 !== '127.0.0.1');
       if (activeNet) activeIp = activeNet.ip4;
+    }
+
+    // Get location (cached to avoid hammering API every 10s)
+    let location = null;
+    const now = Date.now();
+    if (!collectTelemetry._lastLocationTime || now - collectTelemetry._lastLocationTime > 300000) {
+      location = await getIpLocation();
+      collectTelemetry._lastLocationCache = location;
+      collectTelemetry._lastLocationTime = now;
+    } else {
+      location = collectTelemetry._lastLocationCache;
     }
 
     return {
@@ -156,30 +308,30 @@ async function collectTelemetry() {
       network: {
         ip: activeIp,
         wifiSSID: 'Connected WiFi'
-      }
+      },
+      location: location || {}
     };
   } catch (err) {
     return {
       isLocked,
       battery: { level: 95, isCharging: true, hasBattery: true },
       system: { hostname: os.hostname(), cpuUsage: 12, memoryUsage: 45 },
-      network: { ip: '192.168.1.100', wifiSSID: 'WiFi' }
+      network: { ip: '192.168.1.100', wifiSSID: 'WiFi' },
+      location: {}
     };
   }
 }
 
-// Socket Events
+// ─── SOCKET EVENTS ────────────────────────────────────────────────────────────
 socket.on('connect', async () => {
   console.log('✅ [Guardian] Connected to Amanvi Backend!');
 
-  // Register device
   socket.emit('register_device', {
     role: 'laptop_agent',
     deviceId: DEVICE_ID,
     deviceName: DEVICE_NAME
   });
 
-  // Initial Telemetry & Boot Alert
   const initialTelemetry = await collectTelemetry();
 
   if (isLocked) {
@@ -228,7 +380,105 @@ socket.on('disconnect', () => {
   console.warn('⚠️ [Guardian] Disconnected from Amanvi Backend. Reconnecting...');
 });
 
-// Telemetry Polling Loop (Every 10 seconds)
+// ─── WAKE / LID DETECTION ─────────────────────────────────────────────────────
+let lastHeartbeatTick = Date.now();
+let wakeAlertDebounce = 0;
+
+async function triggerWakeAlert(reason = 'lid_open_or_wake') {
+  const now = Date.now();
+  if (now - wakeAlertDebounce < 8000) return;
+  wakeAlertDebounce = now;
+
+  console.log(`🚨 ================================================`);
+  console.log(`🚨 [Guardian] LAPTOP LID OPENED / WOKEN FROM SLEEP!`);
+  console.log(`🚨 Trigger: ${reason}`);
+  console.log(`🚨 ================================================\n`);
+
+  isLocked = true;
+  launchLockscreen();
+
+  const telemetry = await collectTelemetry();
+
+  const sendAlert = () => {
+    socket.emit('laptop_boot_alert', {
+      ...telemetry,
+      reason,
+      trigger: 'lid_open_or_wake',
+      timestamp: new Date().toISOString()
+    });
+    console.log('📡 [Guardian] Wake / Lid-open alert sent to Mobile & Cloud!');
+  };
+
+  if (socket.connected) {
+    sendAlert();
+  } else {
+    console.log('⚠️ [Guardian] Socket reconnecting after sleep...');
+    socket.connect();
+    socket.once('connect', sendAlert);
+  }
+}
+
+// 1. Heartbeat time-delta watcher (sleep / lid open detection)
+setInterval(() => {
+  const now = Date.now();
+  const delta = now - lastHeartbeatTick;
+  lastHeartbeatTick = now;
+
+  if (delta > 3500) {
+    console.log(`⏰ [Guardian] System time jump detected (${delta}ms). Laptop resumed from sleep/lid close!`);
+    triggerWakeAlert('Sleep/Standby Resume (Lid Open)');
+  }
+}, 1000);
+
+// 2. Windows SystemEvents (PowerModes Resume & SessionSwitch)
+function startWindowsEventListener() {
+  const psCode = `
+    Add-Type -AssemblyName System.Windows.Forms
+    $handler = {
+      param($sender, $e)
+      if ($e.Mode -eq [Microsoft.Win32.PowerModes]::Resume) {
+        Write-Host "EVENT:RESUME"
+      }
+    }
+    $sessionHandler = {
+      param($sender, $e)
+      if ($e.Reason -eq [Microsoft.Win32.SessionSwitchReason]::SessionUnlock -or $e.Reason -eq [Microsoft.Win32.SessionSwitchReason]::SessionLogon) {
+        Write-Host "EVENT:UNLOCK"
+      }
+    }
+    [Microsoft.Win32.SystemEvents]::add_PowerModeChanged($handler)
+    [Microsoft.Win32.SystemEvents]::add_SessionSwitch($sessionHandler)
+    [System.Windows.Forms.Application]::Run()
+  `;
+
+  try {
+    const ps = spawn('powershell', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', psCode], {
+      windowsHide: true,
+      stdio: ['pipe', 'pipe', 'ignore']
+    });
+
+    ps.stdout?.on('data', (data) => {
+      const msg = data.toString().trim();
+      if (msg.includes('EVENT:RESUME')) {
+        console.log('⚡ [PowerEvent] Windows Resume signal caught!');
+        triggerWakeAlert('Windows Power Resume');
+      } else if (msg.includes('EVENT:UNLOCK')) {
+        console.log('⚡ [SessionEvent] Windows Session Logon/Unlock caught!');
+        if (isLocked) triggerWakeAlert('Windows Session Unlock Attempt');
+      }
+    });
+
+    ps.on('exit', () => {
+      setTimeout(startWindowsEventListener, 5000);
+    });
+  } catch (err) {
+    console.warn('[Guardian] Could not start native SystemEvents listener:', err.message);
+  }
+}
+
+startWindowsEventListener();
+
+// ─── TELEMETRY POLLING (Every 10 seconds) ────────────────────────────────────
 setInterval(async () => {
   if (socket.connected) {
     const telemetry = await collectTelemetry();
@@ -236,5 +486,5 @@ setInterval(async () => {
   }
 }, 10000);
 
-// Launch on start
+// ─── BOOT ─────────────────────────────────────────────────────────────────────
 launchLockscreen();

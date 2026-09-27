@@ -26,7 +26,7 @@ copy /Y "%VBS_RUNNER%" "%STARTUP_FOLDER%\AmanviGuardian.vbs"
 echo.
 echo [SUCCESS] Amanvi Laptop Guardian installed to Windows Startup!
 echo Whenever your laptop boots/powers on, it will automatically:
-echo  1. Start Backend & Cloud Tunnel
+echo  1. Start Backend and Cloud Tunnel
 echo  2. Protect the screen with Amanvi Security Lock
 echo  3. Send instant alert notification to your Amanvi Mobile App
 echo  4. Wait for your Mobile Face Unlock confirmation

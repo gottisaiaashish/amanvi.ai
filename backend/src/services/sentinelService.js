@@ -1,4 +1,6 @@
-import admin from 'firebase-admin';
+import { getApps } from 'firebase-admin/app';
+import { getMessaging } from 'firebase-admin/messaging';
+import '../../src/config/firebase.js'; // Ensure Firebase is initialized
 import User from '../models/User.js';
 
 // In-memory state for quick low-latency updates
@@ -24,6 +26,14 @@ export const laptopState = {
   network: {
     ip: '127.0.0.1',
     wifiSSID: 'Home WiFi'
+  },
+  location: {
+    city: null,
+    region: null,
+    country: null,
+    lat: null,
+    lon: null,
+    org: null
   },
   snapshots: [],
   logs: []
@@ -67,6 +77,7 @@ export const initSentinelService = (io) => {
       laptopState.lastSeen = new Date().toISOString();
       if (data?.battery) laptopState.battery = { ...laptopState.battery, ...data.battery };
       if (data?.network) laptopState.network = { ...laptopState.network, ...data.network };
+      if (data?.location) laptopState.location = { ...laptopState.location, ...data.location };
 
       addLog('BOOT_ALERT', 'Laptop powered on and entered Guardian Lock mode');
 
@@ -89,6 +100,7 @@ export const initSentinelService = (io) => {
       if (telemetry.battery) laptopState.battery = telemetry.battery;
       if (telemetry.system) laptopState.system = { ...laptopState.system, ...telemetry.system };
       if (telemetry.network) laptopState.network = { ...laptopState.network, ...telemetry.network };
+      if (telemetry.location) laptopState.location = { ...laptopState.location, ...telemetry.location };
       if (typeof telemetry.isLocked === 'boolean') laptopState.isLocked = telemetry.isLocked;
 
       // Broadcast to mobile app
@@ -167,8 +179,9 @@ function addLog(type, message) {
 
 async function sendBootPushNotification() {
   try {
-    if (!admin || !admin.apps || !admin.apps.length) {
-      console.log('[Sentinel FCM] Firebase Admin is not configured, skipping push');
+    // Check Firebase is initialized
+    if (!getApps().length) {
+      console.log('[Sentinel FCM] Firebase Admin is not initialized, skipping push');
       return;
     }
 
@@ -181,7 +194,10 @@ async function sendBootPushNotification() {
     const tokens = users.map(u => u.fcmToken).filter(Boolean);
     if (tokens.length === 0) return;
 
-    const payload = {
+    const messaging = getMessaging();
+
+    const response = await messaging.sendEachForMulticast({
+      tokens,
       notification: {
         title: '🚨 Alert: Laptop Powered ON!',
         body: 'Your laptop just started. Open Amanvi AI to verify with Face Unlock.',
@@ -190,14 +206,35 @@ async function sendBootPushNotification() {
         type: 'LAPTOP_BOOT_ALERT',
         action: 'UNLOCK_PROMPT',
         timestamp: new Date().toISOString()
+      },
+      android: {
+        priority: 'high',
+        notification: {
+          sound: 'default',
+          channelId: 'sentinel_alerts',
+          priority: 'max',
+          visibility: 'public',
+        }
+      },
+      apns: {
+        payload: {
+          aps: {
+            sound: 'default',
+            badge: 1,
+            contentAvailable: true
+          }
+        }
       }
-    };
-
-    const response = await admin.messaging().sendEachForMulticast({
-      tokens,
-      ...payload
     });
+
     console.log(`[Sentinel FCM] Push sent. Success: ${response.successCount}, Failed: ${response.failureCount}`);
+
+    // Log any failures
+    response.responses.forEach((resp, idx) => {
+      if (!resp.success) {
+        console.warn(`[Sentinel FCM] Token ${tokens[idx]} failed:`, resp.error?.message);
+      }
+    });
   } catch (err) {
     console.error('[Sentinel FCM Error]:', err.message);
   }
@@ -257,4 +294,20 @@ export const triggerTestBootAlert = async () => {
 
   await sendBootPushNotification();
   return { success: true, message: 'Boot Alert and Push notification dispatched', state: laptopState };
+};
+
+// Register/update FCM token for a user
+export const registerFcmToken = async (userId, fcmToken) => {
+  try {
+    await User.findOneAndUpdate(
+      { _id: userId },
+      { fcmToken },
+      { upsert: false }
+    );
+    addLog('FCM_REGISTER', `FCM token registered for user ${userId}`);
+    return { success: true };
+  } catch (err) {
+    console.error('[Sentinel FCM Register Error]:', err.message);
+    return { success: false, error: err.message };
+  }
 };

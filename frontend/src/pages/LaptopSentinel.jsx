@@ -367,6 +367,20 @@ export default function LaptopSentinel() {
     }
   };
 
+  const triggerTestBootAlertAction = async () => {
+    setActionLoading(true);
+    try {
+      await fetch(`${serverUrl}/api/sentinel/test-alert`, {
+        method: 'POST',
+        headers: { 'ngrok-skip-browser-warning': '69420' }
+      });
+    } catch (e) {
+      console.error('Test alert error:', e);
+    } finally {
+      setTimeout(() => setActionLoading(false), 600);
+    }
+  };
+
   const isLocked = deviceState.isLocked;
   const isOnline = deviceState.status !== 'offline';
 
@@ -394,12 +408,22 @@ export default function LaptopSentinel() {
             </h1>
           </div>
           <p className="text-sm text-gray-500 mt-1">
-            Real-time biometric lock, power-on alert, and continuous tracking for your laptop.
+            Real-time biometric lock, power-on / lid-open alert, and continuous tracking for your laptop.
           </p>
         </div>
 
         {/* Live Status Badge & Server Settings */}
         <div className="flex items-center gap-2 md:gap-3 flex-wrap">
+          <button
+            onClick={triggerTestBootAlertAction}
+            disabled={actionLoading}
+            className="px-3.5 py-1.5 rounded-full text-xs font-semibold bg-rose-600 hover:bg-rose-700 text-white flex items-center gap-1.5 shadow-sm transition-all cursor-pointer active:scale-95"
+            title="Test Mobile & App Push Notification"
+          >
+            <Bell className="w-3.5 h-3.5 animate-bounce" />
+            <span>Test Mobile Alert 🔔</span>
+          </button>
+
           <button
             onClick={() => setIsEditingServer(!isEditingServer)}
             className="px-3 py-1.5 rounded-full text-xs font-semibold bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-200 flex items-center gap-1.5 transition-colors cursor-pointer"

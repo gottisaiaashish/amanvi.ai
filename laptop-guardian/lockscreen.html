@@ -4,17 +4,33 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Amanvi AI Sentinel - Security Guard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <style>
-    * {
+    *, *::before, *::after {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
       user-select: none;
+      -webkit-user-select: none;
     }
+
+    :root {
+      --rose: #e11d48;
+      --rose-light: #fb7185;
+      --rose-dim: rgba(225,29,72,0.18);
+      --surface: rgba(10, 10, 20, 0.88);
+      --border: rgba(255,255,255,0.07);
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
+      --text-muted: #475569;
+    }
+
     body {
-      background: radial-gradient(circle at center, #0f172a 0%, #020617 100%);
-      color: #f8fafc;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+      background: #020614;
+      color: var(--text-primary);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
       height: 100vh;
       display: flex;
       flex-direction: column;
@@ -23,233 +39,462 @@
       overflow: hidden;
       position: relative;
     }
-    /* Animated Grid Background */
+
+    /* ── Background ─────────────────────────────── */
+    .bg-gradient {
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 50% -10%, rgba(225,29,72,0.12) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 40% at 80% 100%, rgba(99,40,80,0.1) 0%, transparent 60%),
+        radial-gradient(ellipse 40% 60% at 0% 50%, rgba(30,20,60,0.4) 0%, transparent 60%);
+      z-index: 0;
+    }
+
     .grid-bg {
       position: absolute;
       inset: 0;
-      background-image: 
-        linear-gradient(to right, rgba(255,255,255,0.03) 1px, transparent 1px),
-        linear-gradient(to bottom, rgba(255,255,255,0.03) 1px, transparent 1px);
-      background-size: 40px 40px;
-      z-index: 1;
+      background-image:
+        linear-gradient(to right, rgba(255,255,255,0.025) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255,255,255,0.025) 1px, transparent 1px);
+      background-size: 48px 48px;
+      z-index: 0;
+      mask-image: radial-gradient(ellipse 70% 70% at 50% 50%, black 30%, transparent 100%);
     }
-    .glow-orb {
-      position: absolute;
-      width: 500px;
-      height: 500px;
-      background: radial-gradient(circle, rgba(225, 29, 72, 0.18) 0%, rgba(0,0,0,0) 70%);
-      border-radius: 50%;
-      z-index: 1;
-      animation: pulseGlow 4s ease-in-out infinite alternate;
-    }
-    @keyframes pulseGlow {
-      0% { transform: scale(0.85); opacity: 0.6; }
-      100% { transform: scale(1.15); opacity: 1; }
-    }
-    .container {
+
+    /* ── Main Card ──────────────────────────────── */
+    .card {
       position: relative;
       z-index: 10;
-      text-align: center;
-      max-width: 520px;
-      padding: 40px;
-      background: rgba(15, 23, 42, 0.75);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(24px);
-      border-radius: 28px;
-      box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.7), 0 0 40px rgba(225, 29, 72, 0.15);
+      width: 420px;
+      padding: 40px 36px;
+      background: rgba(12, 14, 28, 0.82);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-top-color: rgba(255,255,255,0.13);
+      backdrop-filter: blur(32px) saturate(180%);
+      -webkit-backdrop-filter: blur(32px) saturate(180%);
+      border-radius: 24px;
+      box-shadow:
+        0 0 0 1px rgba(225,29,72,0.08),
+        0 32px 80px -20px rgba(0,0,0,0.8),
+        0 0 60px rgba(225,29,72,0.07),
+        inset 0 1px 0 rgba(255,255,255,0.06);
+    }
+
+    /* ── Shield Icon ────────────────────────────── */
+    .shield-wrap {
+      width: 72px;
+      height: 72px;
+      margin: 0 auto 28px;
+      position: relative;
+    }
+    .shield-ring {
+      position: absolute;
+      inset: -8px;
+      border: 1px solid rgba(225,29,72,0.25);
+      border-radius: 50%;
+      animation: ringPulse 2.5s ease-in-out infinite;
+    }
+    .shield-ring-2 {
+      position: absolute;
+      inset: -16px;
+      border: 1px solid rgba(225,29,72,0.1);
+      border-radius: 50%;
+      animation: ringPulse 2.5s ease-in-out infinite 0.4s;
+    }
+    @keyframes ringPulse {
+      0%, 100% { opacity: 0.4; transform: scale(1); }
+      50% { opacity: 1; transform: scale(1.05); }
     }
     .shield-icon {
-      width: 88px;
-      height: 88px;
-      margin: 0 auto 24px;
-      background: linear-gradient(135deg, rgba(225,29,72,0.2) 0%, rgba(145,71,90,0.4) 100%);
-      border: 1.5px solid rgba(225, 29, 72, 0.5);
-      border-radius: 24px;
+      width: 72px;
+      height: 72px;
+      background: linear-gradient(135deg, rgba(225,29,72,0.15) 0%, rgba(120,40,60,0.25) 100%);
+      border: 1px solid rgba(225,29,72,0.4);
+      border-radius: 20px;
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 0 30px rgba(225, 29, 72, 0.35);
-      animation: pulseShield 2.5s ease-in-out infinite;
+      box-shadow: 0 0 24px rgba(225,29,72,0.2), inset 0 1px 0 rgba(255,255,255,0.1);
+      animation: shieldPulse 3s ease-in-out infinite;
     }
-    @keyframes pulseShield {
-      0%, 100% { transform: scale(1); box-shadow: 0 0 25px rgba(225, 29, 72, 0.3); }
-      50% { transform: scale(1.06); box-shadow: 0 0 40px rgba(225, 29, 72, 0.6); }
+    @keyframes shieldPulse {
+      0%, 100% { box-shadow: 0 0 20px rgba(225,29,72,0.2), inset 0 1px 0 rgba(255,255,255,0.1); }
+      50% { box-shadow: 0 0 40px rgba(225,29,72,0.4), inset 0 1px 0 rgba(255,255,255,0.1); }
     }
     .shield-icon svg {
-      width: 44px;
-      height: 44px;
+      width: 36px;
+      height: 36px;
       stroke: #fb7185;
+      stroke-width: 1.75;
+    }
+
+    /* ── App Name & Brand ───────────────────────── */
+    .brand-label {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 2.5px;
+      text-transform: uppercase;
+      color: var(--rose-light);
+      opacity: 0.7;
+      text-align: center;
+      margin-bottom: 6px;
     }
     h1 {
-      font-size: 26px;
+      font-size: 22px;
       font-weight: 700;
-      letter-spacing: -0.5px;
-      margin-bottom: 8px;
-      background: linear-gradient(to right, #ffffff, #cbd5e1);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
+      letter-spacing: -0.4px;
+      text-align: center;
+      color: var(--text-primary);
+      margin-bottom: 14px;
+      line-height: 1.2;
     }
+
+    /* ── Status Badge ───────────────────────────── */
     .status-badge {
       display: inline-flex;
       align-items: center;
-      gap: 8px;
-      background: rgba(225, 29, 72, 0.15);
-      border: 1px solid rgba(225, 29, 72, 0.3);
-      padding: 6px 16px;
-      border-radius: 9999px;
+      gap: 7px;
+      background: rgba(225,29,72,0.1);
+      border: 1px solid rgba(225,29,72,0.2);
+      padding: 5px 14px;
+      border-radius: 100px;
       color: #fda4af;
-      font-size: 13px;
+      font-size: 11px;
       font-weight: 600;
-      margin-bottom: 24px;
-      letter-spacing: 0.5px;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      margin: 0 auto 28px;
+      width: fit-content;
     }
     .status-dot {
-      width: 8px;
-      height: 8px;
-      background-color: #f43f5e;
+      width: 7px;
+      height: 7px;
+      background: #f43f5e;
       border-radius: 50%;
-      animation: blink 1.2s infinite;
+      animation: dotBlink 1.4s ease-in-out infinite;
+      flex-shrink: 0;
     }
-    @keyframes blink {
+    @keyframes dotBlink {
       0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.3; transform: scale(0.8); }
+      50% { opacity: 0.25; transform: scale(0.7); }
     }
-    p.instruction {
-      color: #94a3b8;
-      font-size: 14px;
-      line-height: 1.6;
-      margin-bottom: 28px;
+
+    /* ── Divider ────────────────────────────────── */
+    .divider {
+      height: 1px;
+      background: linear-gradient(to right, transparent, rgba(255,255,255,0.06), transparent);
+      margin-bottom: 22px;
     }
-    .biometric-card {
-      background: rgba(255, 255, 255, 0.03);
-      border: 1px solid rgba(255, 255, 255, 0.06);
-      border-radius: 16px;
-      padding: 16px;
+
+    /* ── Instruction Text ───────────────────────── */
+    .instruction {
+      color: var(--text-secondary);
+      font-size: 13.5px;
+      font-weight: 400;
+      line-height: 1.65;
+      text-align: center;
+      margin-bottom: 22px;
+    }
+    .instruction strong {
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+
+    /* ── Awaiting Card ──────────────────────────── */
+    .await-card {
+      background: rgba(255,255,255,0.025);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 14px;
+      padding: 14px 16px;
       display: flex;
       align-items: center;
-      gap: 14px;
-      text-align: left;
-      margin-bottom: 20px;
+      gap: 13px;
+      margin-bottom: 22px;
     }
-    .phone-icon {
-      width: 42px;
-      height: 42px;
-      border-radius: 12px;
-      background: rgba(255, 255, 255, 0.08);
+    .await-icon {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      background: rgba(56,189,248,0.1);
+      border: 1px solid rgba(56,189,248,0.15);
       display: flex;
       align-items: center;
       justify-content: center;
+      flex-shrink: 0;
     }
-    .phone-icon svg {
-      width: 22px;
-      height: 22px;
+    .await-icon svg {
+      width: 18px;
+      height: 18px;
       stroke: #38bdf8;
+      stroke-width: 1.75;
     }
-    .biometric-text h4 {
-      font-size: 14px;
+    .await-text {
+      flex: 1;
+      min-width: 0;
+    }
+    .await-title {
+      font-size: 13px;
       font-weight: 600;
-      color: #f1f5f9;
+      color: var(--text-primary);
       margin-bottom: 2px;
     }
-    .biometric-text p {
-      font-size: 12px;
-      color: #64748b;
+    .await-sub {
+      font-size: 11.5px;
+      color: var(--text-muted);
+    }
+    .await-spinner {
+      width: 18px;
+      height: 18px;
+      border: 2px solid rgba(255,255,255,0.08);
+      border-top-color: #38bdf8;
+      border-radius: 50%;
+      animation: spin 0.9s linear infinite;
+      flex-shrink: 0;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Footer ─────────────────────────────────── */
+    .footer {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      padding-top: 4px;
     }
     .live-time {
-      font-family: monospace;
-      font-size: 12px;
-      color: #475569;
-      margin-top: 14px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--text-muted);
+      letter-spacing: 0.3px;
     }
+    .footer-dot {
+      width: 3px;
+      height: 3px;
+      background: rgba(255,255,255,0.15);
+      border-radius: 50%;
+    }
+
+    /* ── Unlocked State ─────────────────────────── */
     .unlocked-state {
       display: none;
-      animation: fadeIn 0.5s ease-out forwards;
+      animation: fadeScaleIn 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
     }
-    @keyframes fadeIn {
-      from { opacity: 0; transform: scale(0.95); }
+    @keyframes fadeScaleIn {
+      from { opacity: 0; transform: scale(0.92); }
       to { opacity: 1; transform: scale(1); }
+    }
+    .unlocked-state .shield-icon {
+      background: linear-gradient(135deg, rgba(34,197,94,0.15) 0%, rgba(20,120,60,0.25) 100%);
+      border-color: rgba(34,197,94,0.4);
+      box-shadow: 0 0 30px rgba(34,197,94,0.25), inset 0 1px 0 rgba(255,255,255,0.1);
+      animation: none;
+    }
+    .unlocked-state .shield-icon svg {
+      stroke: #4ade80;
+    }
+    .unlocked-state h1 {
+      background: linear-gradient(135deg, #4ade80, #22c55e);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .unlocked-state .instruction {
+      color: rgba(134,239,172,0.8);
+    }
+    .checkmark {
+      width: 48px;
+      height: 48px;
+      background: rgba(34,197,94,0.1);
+      border: 1px solid rgba(34,197,94,0.25);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 16px;
+    }
+    .checkmark svg {
+      width: 24px;
+      height: 24px;
+      stroke: #4ade80;
     }
   </style>
 </head>
 <body>
+  <div class="bg-gradient"></div>
   <div class="grid-bg"></div>
-  <div class="glow-orb"></div>
 
-  <div class="container" id="lock-container">
-    <div class="shield-icon">
-      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
-      </svg>
-    </div>
-
-    <h1>Amanvi AI Guardian</h1>
-    <div class="status-badge">
-      <span class="status-dot"></span>
-      SECURITY LOCK ACTIVE
-    </div>
-
-    <p class="instruction">
-      This laptop is protected by <strong>Amanvi AI Sentinel</strong>.<br>
-      Please unlock via Face ID on your <strong>Amanvi AI Mobile App</strong>.
-    </p>
-
-    <div class="biometric-card">
-      <div class="phone-icon">
+  <!-- LOCKED STATE -->
+  <div class="card" id="lock-container">
+    <div class="shield-wrap">
+      <div class="shield-ring-2"></div>
+      <div class="shield-ring"></div>
+      <div class="shield-icon">
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
         </svg>
       </div>
-      <div class="biometric-text">
-        <h4>Awaiting Mobile Face Unlock</h4>
-        <p id="socket-status">Connecting to Amanvi Cloud...</p>
+    </div>
+
+    <div class="brand-label">Amanvi AI Sentinel</div>
+    <h1>Device Secured</h1>
+
+    <div class="status-badge">
+      <span class="status-dot"></span>
+      Security Lock Active
+    </div>
+
+    <div class="divider"></div>
+
+    <p class="instruction">
+      This laptop is protected by <strong>Amanvi AI</strong>.<br>
+      Unlock via <strong>Face ID</strong> on your Amanvi mobile app.
+    </p>
+
+    <div class="await-card">
+      <div class="await-icon">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+        </svg>
+      </div>
+      <div class="await-text">
+        <div class="await-title">Awaiting Mobile Face Unlock</div>
+        <div class="await-sub" id="socket-status">Connecting to Amanvi Cloud...</div>
+      </div>
+      <div class="await-spinner"></div>
+    </div>
+
+    <div class="footer">
+      <span class="live-time" id="clock">--:--:--</span>
+      <span class="footer-dot"></span>
+      <span class="live-time" id="date-display">Loading...</span>
+    </div>
+  </div>
+
+  <!-- UNLOCKED STATE -->
+  <div class="card unlocked-state" id="unlock-container">
+    <div class="shield-wrap">
+      <div class="shield-icon" style="background:linear-gradient(135deg,rgba(34,197,94,0.15),rgba(20,120,60,0.25));border-color:rgba(34,197,94,0.4);box-shadow:0 0 30px rgba(34,197,94,0.25)">
+        <svg fill="none" viewBox="0 0 24 24" stroke="#4ade80" stroke-width="1.75">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z"/>
+        </svg>
       </div>
     </div>
 
-    <div class="live-time" id="clock">--:--:--</div>
-  </div>
+    <div class="brand-label">Amanvi AI Sentinel</div>
+    <h1 style="background:linear-gradient(135deg,#4ade80,#22c55e);-webkit-background-clip:text;-webkit-text-fill-color:transparent">
+      Access Granted
+    </h1>
 
-  <!-- Unlocked State Overlay -->
-  <div class="container unlocked-state" id="unlock-container">
-    <div class="shield-icon" style="background: rgba(34, 197, 94, 0.2); border-color: rgba(34, 197, 94, 0.5); box-shadow: 0 0 35px rgba(34, 197, 94, 0.4);">
-      <svg fill="none" viewBox="0 0 24 24" stroke="#4ade80">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z"/>
-      </svg>
+    <div class="status-badge" style="background:rgba(34,197,94,0.1);border-color:rgba(34,197,94,0.25);color:#86efac">
+      <span class="status-dot" style="background:#22c55e;animation:none"></span>
+      Identity Verified
     </div>
-    <h1 style="background: linear-gradient(to right, #4ade80, #22c55e); -webkit-background-clip: text;">Access Granted</h1>
-    <p class="instruction" style="color: #86efac;">
-      Authenticated remotely via Mobile Face ID.<br>
-      Welcome back, Ashish!
+
+    <div class="divider"></div>
+
+    <p class="instruction" style="color:rgba(134,239,172,0.8)">
+      Authenticated via <strong style="color:#4ade80">Mobile Face ID</strong>.<br>
+      Welcome back, <strong style="color:#4ade80">Ashish!</strong>
     </p>
+
+    <div class="footer" style="justify-content:center">
+      <span class="live-time" id="unlock-clock">--:--:--</span>
+    </div>
   </div>
 
   <script>
-    // Live Clock
+    // ── Live Clock ────────────────────────────────────────────────
     function updateClock() {
       const now = new Date();
-      document.getElementById('clock').innerText = now.toLocaleTimeString() + ' • ' + now.toLocaleDateString();
+      const timeStr = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      const dateStr = now.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+      const el = document.getElementById('clock');
+      const dateEl = document.getElementById('date-display');
+      const unlockEl = document.getElementById('unlock-clock');
+      if (el) el.textContent = timeStr;
+      if (dateEl) dateEl.textContent = dateStr;
+      if (unlockEl) unlockEl.textContent = timeStr;
     }
     setInterval(updateClock, 1000);
     updateClock();
 
-    // IPC / WebSocket status hook
+    // ── Enforce Fullscreen & Focus (Anti-Bypass) ──────────────────
+    let isUnlocked = false;
+
+    function enforceLockFocus() {
+      if (isUnlocked) return;
+      window.focus();
+      if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      }
+    }
+
+    window.addEventListener('blur', () => { if (!isUnlocked) setTimeout(enforceLockFocus, 10); });
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden && !isUnlocked) setTimeout(enforceLockFocus, 10);
+    });
+    window.addEventListener('click', enforceLockFocus);
+    window.addEventListener('mousemove', enforceLockFocus);
+
+    // ── Block Keyboard Escape Shortcuts ──────────────────────────
+    window.addEventListener('keydown', (e) => {
+      if (isUnlocked) return;
+      enforceLockFocus();
+
+      const blocked =
+        e.key === 'Escape' ||
+        e.key === 'F11' ||
+        e.key === 'F12' ||
+        e.key === 'Meta' ||
+        e.key === 'OS' ||
+        (e.ctrlKey && e.key === 'Escape') ||
+        (e.altKey && e.key === 'F4') ||
+        (e.altKey && e.key === 'Tab') ||
+        (e.ctrlKey && ['w','W','q','Q','r','R','l','L'].includes(e.key)) ||
+        (e.ctrlKey && e.shiftKey && ['I','i','J','j','C','c'].includes(e.key));
+
+      if (blocked) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        return false;
+      }
+    }, true);
+
+    // Capture keyup too for Meta key
+    window.addEventListener('keyup', (e) => {
+      if (isUnlocked) return;
+      if (e.key === 'Meta' || e.key === 'OS') {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        enforceLockFocus();
+      }
+    }, true);
+
+    window.addEventListener('load', enforceLockFocus);
+
+    // ── IPC Hooks for guardian-agent ─────────────────────────────
     window.setConnectionStatus = function(msg, isConnected) {
       const el = document.getElementById('socket-status');
       if (el) {
-        el.innerText = msg;
+        el.textContent = msg;
         el.style.color = isConnected ? '#38bdf8' : '#f87171';
       }
+      // Stop spinner when connected
+      const spinner = document.querySelector('.await-spinner');
+      if (spinner) spinner.style.opacity = isConnected ? '0.4' : '1';
     };
 
     window.triggerUnlockUI = function() {
+      isUnlocked = true;
       document.getElementById('lock-container').style.display = 'none';
       document.getElementById('unlock-container').style.display = 'block';
-      
+
       // Voice confirmation
       try {
         if ('speechSynthesis' in window) {
-          const utterance = new SpeechSynthesisUtterance("Access Granted. Welcome back Ashish.");
-          utterance.pitch = 1.1;
-          utterance.rate = 1.0;
+          const utterance = new SpeechSynthesisUtterance('Access Granted. Welcome back Ashish.');
+          utterance.pitch = 1.05;
+          utterance.rate = 0.95;
           window.speechSynthesis.speak(utterance);
         }
       } catch (e) {}
