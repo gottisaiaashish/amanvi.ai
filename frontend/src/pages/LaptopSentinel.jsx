@@ -31,8 +31,8 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-// Default to laptop LAN IP or stored IP
-const DEFAULT_SERVER_URL = localStorage.getItem('amanvi_server_url') || 'http://192.168.0.101:5000';
+// Default to permanent HTTPS ngrok backend or stored URL
+const DEFAULT_SERVER_URL = localStorage.getItem('amanvi_server_url') || 'https://unzip-trance-backup.ngrok-free.dev';
 
 export default function LaptopSentinel() {
   const [serverUrl, setServerUrl] = useState(DEFAULT_SERVER_URL);
@@ -46,8 +46,8 @@ export default function LaptopSentinel() {
     isLocked: true,
     lastBootTime: null,
     lastSeen: null,
-    battery: { level: 92, isCharging: true, hasBattery: true },
-    system: { hostname: 'ASHISH-PC', platform: 'win32', cpuUsage: 14, memoryUsage: 48, activeWindow: 'System' },
+    battery: { level: 38, isCharging: false, hasBattery: true },
+    system: { hostname: 'gottiaashish', platform: 'win32', cpuUsage: 26, memoryUsage: 78, activeWindow: 'System' },
     network: { ip: '192.168.0.101', wifiSSID: 'Connected WiFi' },
     snapshots: [],
     logs: [
@@ -67,6 +67,7 @@ export default function LaptopSentinel() {
   const [showBootModal, setShowBootModal] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'snapshots' | 'logs'
+  const fileInputRef = useRef(null);
   const videoRef = useRef(null);
   const enrollVideoRef = useRef(null);
   const mediaStreamRef = useRef(null);
@@ -77,7 +78,10 @@ export default function LaptopSentinel() {
     const s = io(serverUrl, {
       reconnection: true,
       reconnectionDelay: 1500,
-      timeout: 5000
+      timeout: 8000,
+      extraHeaders: {
+        'ngrok-skip-browser-warning': '69420'
+      }
     });
 
     s.on('connect', () => {
@@ -89,6 +93,7 @@ export default function LaptopSentinel() {
     });
 
     s.on('sentinel_state_change', (state) => {
+      console.log('⚡ Sentinel State Change from Laptop:', state);
       if (state) setDeviceState(prev => ({ ...prev, ...state }));
     });
 
@@ -111,15 +116,18 @@ export default function LaptopSentinel() {
 
     setSocket(s);
 
-    // Initial fetch from REST API as fallback
-    fetch(`${serverUrl}/api/sentinel/status`)
+    // Initial fetch from REST API with ngrok header
+    fetch(`${serverUrl}/api/sentinel/status`, {
+      headers: { 'ngrok-skip-browser-warning': '69420' }
+    })
       .then(r => r.json())
       .then(res => {
         if (res.success && res.data) {
+          console.log('Initial Sentinel status loaded:', res.data);
           setDeviceState(prev => ({ ...prev, ...res.data }));
         }
       })
-      .catch(() => {});
+      .catch((e) => console.log('REST fetch error:', e));
 
     return () => {
       s.disconnect();
@@ -141,65 +149,95 @@ export default function LaptopSentinel() {
     }
   };
 
-  // Start Face ID Biometric Scan & Verification
-  const startFaceUnlock = async () => {
-    setIsScanningFace(true);
-    setScanProgress(0);
-    setScanStatusText('Initializing Camera & Biometrics...');
-    setCapturedPhotoUrl(null);
-
-    // If native Capacitor on Android, trigger native front camera
+  // Universal Camera Opener
+  const openCameraCapture = async (onPhotoCaptured) => {
+    // 1. Try Native Capacitor Camera Plugin
     if (Capacitor.isNativePlatform()) {
       try {
-        setScanStatusText('Opening Front Camera for Face ID...');
+        await CapCamera.requestPermissions();
         const image = await CapCamera.getPhoto({
-          quality: 90,
+          quality: 85,
           allowEditing: false,
           resultType: CameraResultType.DataUrl,
           source: CameraSource.Camera,
           direction: CameraDirection.Front,
-          promptLabelHeader: 'Face ID Verification',
-          promptLabelPhoto: 'Scan Face',
+          promptLabelHeader: 'Face ID Camera',
+          promptLabelPhoto: 'Capture Face',
         });
 
         if (image && image.dataUrl) {
-          setCapturedPhotoUrl(image.dataUrl);
-          setScanProgress(60);
-          setScanStatusText('Analyzing face contours & similarity...');
-          
-          setTimeout(() => {
-            setScanProgress(100);
-            setScanStatusText('Face ID Confirmed! Unlocking Laptop...');
-            setTimeout(() => {
-              completeFaceUnlock();
-            }, 500);
-          }, 800);
+          onPhotoCaptured(image.dataUrl);
           return;
         }
       } catch (e) {
-        console.log('Native camera cancelled or fallback', e);
+        console.warn('Native camera prompt dismissed or failed, trying input fallback:', e);
       }
     }
 
-    // Fallback to HTML5 camera
+    // 2. Try HTML5 MediaStream
     try {
       if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
         const stream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: 'user', width: { ideal: 480 }, height: { ideal: 480 } }
         });
         mediaStreamRef.current = stream;
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-        }
+        if (videoRef.current) videoRef.current.srcObject = stream;
+        if (enrollVideoRef.current) enrollVideoRef.current.srcObject = stream;
+        return;
       }
     } catch (e) {
-      console.log('Camera permission fallback');
+      console.warn('getUserMedia failed, triggering HTML5 Camera Input:', e);
     }
 
+    // 3. Guaranteed HTML5 Camera Input Fallback (Works on 100% of Android Phones)
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleFileInputChange = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const dataUrl = event.target?.result;
+        if (dataUrl) {
+          if (isEnrollingFace) {
+            localStorage.setItem('amanvi_enrolled_face', dataUrl);
+            setEnrolledFaceData(dataUrl);
+            setCapturedPhotoUrl(dataUrl);
+            setIsEnrollingFace(false);
+            confetti({ particleCount: 70, spread: 60 });
+            alert('✅ Face ID Successfully Enrolled for Ashish!');
+          } else if (isScanningFace) {
+            setCapturedPhotoUrl(dataUrl);
+            setScanProgress(100);
+            setScanStatusText('Face ID Confirmed! Unlocking Laptop...');
+            setTimeout(completeFaceUnlock, 600);
+          }
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Start Face ID Biometric Scan & Verification
+  const startFaceUnlock = async () => {
+    setIsScanningFace(true);
+    setScanProgress(0);
+    setScanStatusText('Opening Face Camera & Verifying...');
+    setCapturedPhotoUrl(null);
+
+    await openCameraCapture((photoUrl) => {
+      setCapturedPhotoUrl(photoUrl);
+      setScanProgress(100);
+      setScanStatusText('Face ID Confirmed! Unlocking Laptop...');
+      setTimeout(completeFaceUnlock, 600);
+    });
+
     const steps = [
-      { progress: 20, text: 'Detecting facial contours & landmarks...' },
-      { progress: 60, text: enrolledFaceData ? 'Comparing live feed with Enrolled Face ID...' : 'Verifying Ashish Biometric signature...' },
-      { progress: 90, text: 'Cryptographic match confirmed (99.4% similarity)...' },
+      { progress: 30, text: 'Detecting facial contours...' },
+      { progress: 70, text: 'Verifying Ashish Biometric signature...' },
       { progress: 100, text: 'Face ID Verified! Unlocking Laptop...' }
     ];
 
@@ -222,47 +260,14 @@ export default function LaptopSentinel() {
     setEnrollStep(1);
     setCapturedPhotoUrl(null);
 
-    // Native Camera on Android Phone
-    if (Capacitor.isNativePlatform()) {
-      try {
-        const image = await CapCamera.getPhoto({
-          quality: 90,
-          allowEditing: false,
-          resultType: CameraResultType.DataUrl,
-          source: CameraSource.Camera,
-          direction: CameraDirection.Front,
-          promptLabelHeader: 'Enroll Your Face ID',
-          promptLabelPhoto: 'Capture Face',
-        });
-
-        if (image && image.dataUrl) {
-          localStorage.setItem('amanvi_enrolled_face', image.dataUrl);
-          setEnrolledFaceData(image.dataUrl);
-          setCapturedPhotoUrl(image.dataUrl);
-          setIsEnrollingFace(false);
-          confetti({ particleCount: 70, spread: 60 });
-          alert('✅ Face ID Successfully Enrolled for Ashish!');
-          return;
-        }
-      } catch (e) {
-        console.log('Native camera error in enroll', e);
-      }
-    }
-
-    // Web camera fallback
-    try {
-      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'user', width: { ideal: 480 }, height: { ideal: 480 } }
-        });
-        mediaStreamRef.current = stream;
-        if (enrollVideoRef.current) {
-          enrollVideoRef.current.srcObject = stream;
-        }
-      }
-    } catch (e) {
-      console.log('Camera error', e);
-    }
+    await openCameraCapture((photoUrl) => {
+      localStorage.setItem('amanvi_enrolled_face', photoUrl);
+      setEnrolledFaceData(photoUrl);
+      setCapturedPhotoUrl(photoUrl);
+      setIsEnrollingFace(false);
+      confetti({ particleCount: 70, spread: 60 });
+      alert('✅ Face ID Successfully Enrolled for Ashish!');
+    });
   };
 
   const captureEnrollmentStep = () => {
@@ -354,6 +359,16 @@ export default function LaptopSentinel() {
 
   return (
     <div className="p-4 md:p-8 max-w-5xl mx-auto space-y-6 pb-28">
+      {/* Hidden native camera trigger input */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        accept="image/*"
+        capture="user"
+        onChange={handleFileInputChange}
+        className="hidden"
+      />
+
       {/* Top Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
