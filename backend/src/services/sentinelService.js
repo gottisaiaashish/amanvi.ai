@@ -239,3 +239,22 @@ export const sendCustomCommand = (action, payload = {}) => {
   }
   return { success: true, action };
 };
+
+export const triggerTestBootAlert = async () => {
+  laptopState.status = 'locked';
+  laptopState.isLocked = true;
+  laptopState.lastBootTime = new Date().toISOString();
+  addLog('BOOT_ALERT', 'Test Boot Notification triggered from admin');
+
+  if (ioInstance) {
+    ioInstance.emit('laptop_boot_alert', {
+      timestamp: laptopState.lastBootTime,
+      message: '🚨 Alert: Your Laptop just turned on! Face unlock required.',
+      state: laptopState
+    });
+    ioInstance.emit('sentinel_state_change', laptopState);
+  }
+
+  await sendBootPushNotification();
+  return { success: true, message: 'Boot Alert and Push notification dispatched', state: laptopState };
+};

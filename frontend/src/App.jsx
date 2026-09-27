@@ -1,5 +1,8 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { io } from 'socket.io-client';
+import { LocalNotifications } from '@capacitor/local-notifications';
+import { Capacitor } from '@capacitor/core';
 import BrightLayout from './layouts/BrightLayout';
 import UnifiedInbox from './pages/UnifiedInbox';
 import DailySchedule from './pages/DailySchedule';
@@ -13,6 +16,32 @@ const SettingsView = () => <div className="p-12 text-gray-500">Settings Configur
 function App() {
   useEffect(() => {
     setupPushNotifications();
+
+    // Global background Sentinel Socket for Instant Android Device Notifications
+    const socket = io('https://unzip-trance-backup.ngrok-free.dev', {
+      reconnection: true,
+      extraHeaders: { 'ngrok-skip-browser-warning': '69420' }
+    });
+
+    socket.on('laptop_boot_alert', async (data) => {
+      try {
+        if (Capacitor.isNativePlatform()) {
+          await LocalNotifications.requestPermissions();
+          await LocalNotifications.schedule({
+            notifications: [
+              {
+                title: '🚨 Alert: Laptop Powered ON!',
+                body: `Laptop ${data?.state?.deviceName || 'gottiaashish'} started. Open Amanvi AI for Face Unlock.`,
+                id: Math.floor(Math.random() * 100000),
+                sound: 'default'
+              }
+            ]
+          });
+        }
+      } catch (e) {}
+    });
+
+    return () => socket.disconnect();
   }, []);
 
   return (

@@ -3,10 +3,22 @@ import {
   getLaptopState,
   unlockLaptopFromApi,
   lockLaptopFromApi,
-  sendCustomCommand
+  sendCustomCommand,
+  triggerTestBootAlert
 } from '../services/sentinelService.js';
 
 const router = Router();
+
+// @route   POST /api/sentinel/test-alert
+// @desc    Trigger test boot notification & alert modal
+router.post('/test-alert', async (req, res) => {
+  try {
+    const result = await triggerTestBootAlert();
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
 
 // @route   GET /api/sentinel/status
 // @desc    Get current real-time laptop status & telemetry
