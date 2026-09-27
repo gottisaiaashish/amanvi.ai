@@ -1,0 +1,14 @@
+{
+  "name": "laptop-guardian",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Amanvi AI Laptop Sentinel Guardian Daemon",
+  "main": "guardian-agent.js",
+  "scripts": {
+    "start": "node guardian-agent.js"
+  },
+  "dependencies": {
+    "socket.io-client": "^4.8.1",
+    "systeminformation": "^5.25.11"
+  }
+}

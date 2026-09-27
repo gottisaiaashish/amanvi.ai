@@ -13,17 +13,21 @@ const port = process.env.PORT || 5000;
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(cors());
-app.use(helmet());
+app.use(cors({ origin: '*' }));
+app.use(helmet({ crossOriginResourcePolicy: false }));
 app.use(morgan('dev'));
 
+import http from 'http';
+import { Server as SocketIOServer } from 'socket.io';
 import userRoutes from './routes/userRoutes.js';
 import webhookRoutes from './routes/webhookRoutes.js';
 import chatRoutes from './routes/chatRoutes.js';
 import taskRoutes from './routes/taskRoutes.js';
 import whatsappRoutes from './routes/whatsappRoutes.js';
 import inboxRoutes from './routes/inboxRoutes.js';
+import sentinelRoutes from './routes/sentinelRoutes.js';
 import { initializeWhatsApp } from './services/whatsappService.js';
+import { initSentinelService } from './services/sentinelService.js';
 
 // Basic Route
 app.get('/api/health', (req, res) => {
@@ -37,6 +41,7 @@ app.use('/api/chat', chatRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/whatsapp', whatsappRoutes);
 app.use('/api/inbox', inboxRoutes);
+app.use('/api/sentinel', sentinelRoutes);
 
 // Database Connection
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/amanvi-ai';
@@ -48,6 +53,18 @@ mongoose.connect(MONGO_URI)
     console.error('MongoDB connection error (Ignored for now):', error.message);
   });
 
+// Create HTTP and Socket.IO Server
+const httpServer = http.createServer(app);
+const io = new SocketIOServer(httpServer, {
+  cors: {
+    origin: '*',
+    methods: ['GET', 'POST']
+  }
+});
+
+// Initialize Sentinel Realtime Service
+initSentinelService(io);
+
 // Initialize WhatsApp Web Client unconditionally
 try {
   initializeWhatsApp();
@@ -55,6 +72,7 @@ try {
   console.error("Failed to initialize WhatsApp", e);
 }
 
-app.listen(port, '0.0.0.0', () => {
-  console.log(`Server is running at http://localhost:${port}`);
+httpServer.listen(port, '0.0.0.0', () => {
+  console.log(`Server with Sentinel Socket is running at http://localhost:${port}`);
 });
+ 

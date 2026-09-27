@@ -2,3 +2,7 @@ node_modules/
 dist/
 .env
 .DS_Store
+*.log
+laptop-guardian/node_modules/
+laptop-guardian/.browser-profile/
+

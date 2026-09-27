@@ -1,5 +1,5 @@
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { Inbox, Calendar, MessageSquare, Settings, Command } from 'lucide-react';
+import { Inbox, Calendar, MessageSquare, Settings, Command, ShieldCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ExpandableTabs } from '../components/expandable-tabs';
 
@@ -7,6 +7,7 @@ const NAV_ITEMS = [
   { title: 'Inbox', path: '/', icon: Inbox },
   { title: 'Schedule', path: '/schedule', icon: Calendar },
   { title: 'Amanvi AI', path: '/amanvi', icon: MessageSquare },
+  { title: 'Sentinel', path: '/sentinel', icon: ShieldCheck },
   { title: 'Settings', path: '/settings', icon: Settings },
 ];
 

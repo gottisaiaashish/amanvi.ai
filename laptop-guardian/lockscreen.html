@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Amanvi AI Sentinel - Security Guard</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+    body {
+      background: radial-gradient(circle at center, #0f172a 0%, #020617 100%);
+      color: #f8fafc;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      position: relative;
+    }
+    /* Animated Grid Background */
+    .grid-bg {
+      position: absolute;
+      inset: 0;
+      background-image: 
+        linear-gradient(to right, rgba(255,255,255,0.03) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255,255,255,0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      z-index: 1;
+    }
+    .glow-orb {
+      position: absolute;
+      width: 500px;
+      height: 500px;
+      background: radial-gradient(circle, rgba(225, 29, 72, 0.18) 0%, rgba(0,0,0,0) 70%);
+      border-radius: 50%;
+      z-index: 1;
+      animation: pulseGlow 4s ease-in-out infinite alternate;
+    }
+    @keyframes pulseGlow {
+      0% { transform: scale(0.85); opacity: 0.6; }
+      100% { transform: scale(1.15); opacity: 1; }
+    }
+    .container {
+      position: relative;
+      z-index: 10;
+      text-align: center;
+      max-width: 520px;
+      padding: 40px;
+      background: rgba(15, 23, 42, 0.75);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(24px);
+      border-radius: 28px;
+      box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.7), 0 0 40px rgba(225, 29, 72, 0.15);
+    }
+    .shield-icon {
+      width: 88px;
+      height: 88px;
+      margin: 0 auto 24px;
+      background: linear-gradient(135deg, rgba(225,29,72,0.2) 0%, rgba(145,71,90,0.4) 100%);
+      border: 1.5px solid rgba(225, 29, 72, 0.5);
+      border-radius: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 30px rgba(225, 29, 72, 0.35);
+      animation: pulseShield 2.5s ease-in-out infinite;
+    }
+    @keyframes pulseShield {
+      0%, 100% { transform: scale(1); box-shadow: 0 0 25px rgba(225, 29, 72, 0.3); }
+      50% { transform: scale(1.06); box-shadow: 0 0 40px rgba(225, 29, 72, 0.6); }
+    }
+    .shield-icon svg {
+      width: 44px;
+      height: 44px;
+      stroke: #fb7185;
+    }
+    h1 {
+      font-size: 26px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      margin-bottom: 8px;
+      background: linear-gradient(to right, #ffffff, #cbd5e1);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(225, 29, 72, 0.15);
+      border: 1px solid rgba(225, 29, 72, 0.3);
+      padding: 6px 16px;
+      border-radius: 9999px;
+      color: #fda4af;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 24px;
+      letter-spacing: 0.5px;
+    }
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      background-color: #f43f5e;
+      border-radius: 50%;
+      animation: blink 1.2s infinite;
+    }
+    @keyframes blink {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.3; transform: scale(0.8); }
+    }
+    p.instruction {
+      color: #94a3b8;
+      font-size: 14px;
+      line-height: 1.6;
+      margin-bottom: 28px;
+    }
+    .biometric-card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 16px;
+      padding: 16px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      text-align: left;
+      margin-bottom: 20px;
+    }
+    .phone-icon {
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.08);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .phone-icon svg {
+      width: 22px;
+      height: 22px;
+      stroke: #38bdf8;
+    }
+    .biometric-text h4 {
+      font-size: 14px;
+      font-weight: 600;
+      color: #f1f5f9;
+      margin-bottom: 2px;
+    }
+    .biometric-text p {
+      font-size: 12px;
+      color: #64748b;
+    }
+    .live-time {
+      font-family: monospace;
+      font-size: 12px;
+      color: #475569;
+      margin-top: 14px;
+    }
+    .unlocked-state {
+      display: none;
+      animation: fadeIn 0.5s ease-out forwards;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: scale(0.95); }
+      to { opacity: 1; transform: scale(1); }
+    }
+  </style>
+</head>
+<body>
+  <div class="grid-bg"></div>
+  <div class="glow-orb"></div>
+
+  <div class="container" id="lock-container">
+    <div class="shield-icon">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+      </svg>
+    </div>
+
+    <h1>Amanvi AI Guardian</h1>
+    <div class="status-badge">
+      <span class="status-dot"></span>
+      SECURITY LOCK ACTIVE
+    </div>
+
+    <p class="instruction">
+      This laptop is protected by <strong>Amanvi AI Sentinel</strong>.<br>
+      Please unlock via Face ID on your <strong>Amanvi AI Mobile App</strong>.
+    </p>
+
+    <div class="biometric-card">
+      <div class="phone-icon">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+        </svg>
+      </div>
+      <div class="biometric-text">
+        <h4>Awaiting Mobile Face Unlock</h4>
+        <p id="socket-status">Connecting to Amanvi Cloud...</p>
+      </div>
+    </div>
+
+    <div class="live-time" id="clock">--:--:--</div>
+  </div>
+
+  <!-- Unlocked State Overlay -->
+  <div class="container unlocked-state" id="unlock-container">
+    <div class="shield-icon" style="background: rgba(34, 197, 94, 0.2); border-color: rgba(34, 197, 94, 0.5); box-shadow: 0 0 35px rgba(34, 197, 94, 0.4);">
+      <svg fill="none" viewBox="0 0 24 24" stroke="#4ade80">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z"/>
+      </svg>
+    </div>
+    <h1 style="background: linear-gradient(to right, #4ade80, #22c55e); -webkit-background-clip: text;">Access Granted</h1>
+    <p class="instruction" style="color: #86efac;">
+      Authenticated remotely via Mobile Face ID.<br>
+      Welcome back, Ashish!
+    </p>
+  </div>
+
+  <script>
+    // Live Clock
+    function updateClock() {
+      const now = new Date();
+      document.getElementById('clock').innerText = now.toLocaleTimeString() + ' • ' + now.toLocaleDateString();
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    // IPC / WebSocket status hook
+    window.setConnectionStatus = function(msg, isConnected) {
+      const el = document.getElementById('socket-status');
+      if (el) {
+        el.innerText = msg;
+        el.style.color = isConnected ? '#38bdf8' : '#f87171';
+      }
+    };
+
+    window.triggerUnlockUI = function() {
+      document.getElementById('lock-container').style.display = 'none';
+      document.getElementById('unlock-container').style.display = 'block';
+      
+      // Voice confirmation
+      try {
+        if ('speechSynthesis' in window) {
+          const utterance = new SpeechSynthesisUtterance("Access Granted. Welcome back Ashish.");
+          utterance.pitch = 1.1;
+          utterance.rate = 1.0;
+          window.speechSynthesis.speak(utterance);
+        }
+      } catch (e) {}
+    };
+  </script>
+</body>
+</html>

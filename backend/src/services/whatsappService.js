@@ -15,6 +15,7 @@ export const initializeWhatsApp = () => {
     client.on('qr', (qr) => {
         console.log('====================================');
         console.log('SCAN THIS QR CODE WITH WHATSAPP APP:');
+        console.log('RAW_QR_CODE:', qr);
         console.log('====================================');
         qrcode.generate(qr, { small: true });
     });
@@ -23,16 +24,16 @@ export const initializeWhatsApp = () => {
         console.log('✅ WhatsApp Client is ready and connected!');
     });
 
-    client.on('message', async msg => {
+    client.on('message_create', async msg => {
         // Ignore status updates
         if (msg.isStatus) return;
 
-        console.log(`📥 Received message from ${msg.from}: ${msg.body}`);
+        console.log(`📥 Received message from ${msg.from} (fromMe: ${msg.fromMe}): ${msg.body}`);
         
         // Forward message to n8n Webhook
         try {
             // Changed to production webhook URL (removed -test) so it runs continuously
-            const webhookUrl = process.env.N8N_WHATSAPP_WEBHOOK || 'http://localhost:5678/webhook/whatsapp-incoming';
+            const webhookUrl = process.env.N8N_WHATSAPP_WEBHOOK || 'https://unzip-trance-backup.ngrok-free.dev/webhook-test/whatsapp-incoming';
             
             await fetch(webhookUrl, {
                 method: 'POST',
@@ -44,7 +45,8 @@ export const initializeWhatsApp = () => {
                     from: msg.from, // Format: 919876543210@c.us
                     body: msg.body,
                     senderName: msg._data.notifyName || 'Unknown',
-                    timestamp: msg.timestamp
+                    timestamp: msg.timestamp,
+                    fromMe: msg.fromMe
                 })
             });
             console.log('✅ Message forwarded to n8n webhook.');
@@ -53,7 +55,13 @@ export const initializeWhatsApp = () => {
         }
     });
 
-    client.initialize();
+    client.on('auth_failure', msg => {
+        console.error('❌ WhatsApp Auth failure:', msg);
+    });
+
+    client.initialize().catch(err => {
+        console.warn('⚠️ WhatsApp initialization error (ignored, Sentinel remains active):', err.message);
+    });
 };
 
 export const sendWhatsAppMessage = async (to, message) => {

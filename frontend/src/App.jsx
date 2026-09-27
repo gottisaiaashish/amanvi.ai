@@ -4,6 +4,7 @@ import BrightLayout from './layouts/BrightLayout';
 import UnifiedInbox from './pages/UnifiedInbox';
 import DailySchedule from './pages/DailySchedule';
 import AmanviSecretary from './pages/AmanviSecretary';
+import LaptopSentinel from './pages/LaptopSentinel';
 import { setupPushNotifications } from './lib/pushNotifications';
 
 // Placeholder for settings
@@ -21,6 +22,7 @@ function App() {
           <Route path="/" element={<UnifiedInbox />} />
           <Route path="/schedule" element={<DailySchedule />} />
           <Route path="/amanvi" element={<AmanviSecretary />} />
+          <Route path="/sentinel" element={<LaptopSentinel />} />
           <Route path="/settings" element={<SettingsView />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
